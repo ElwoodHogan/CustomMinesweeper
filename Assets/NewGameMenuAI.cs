@@ -28,10 +28,20 @@ public class NewGameMenuAI : MonoBehaviour
     }
     private void Start()
     {
-        Height.onValueChanged.AddListener((s)=> { if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; else {int.TryParse(s, out height); Warning.text = ""; } });
-        Width.onValueChanged.AddListener((s) => { if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; else {int.TryParse(s, out width); Warning.text = ""; } });
+        Height.onValueChanged.AddListener((s)=> { 
+            if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; 
+            else {int.TryParse(s, out height); Warning.text = "";
+                if (height * width > 4000) Warning.text = "Wooooaaaaah big numbers there.  Look, one of the main things I wanted to achieve with this game is to allow you to make as big of a board as you want.  HOWEVER:  browser based programs have their limits.  I have personally tested up to 500x500, and that took about 4 minutes to create, and it crashed when exiting, so consider this a warning.";
+            } });
+        Width.onValueChanged.AddListener((s) => { 
+            if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; 
+            else {int.TryParse(s, out width); Warning.text = "";
+                if (height * width > 4000) Warning.text = "Wooooaaaaah big numbers there.  Look, one of the main things I wanted to achieve with this game is to allow you to make as big of a board as you want.  HOWEVER:  browser based programs have their limits.  I have personally tested up to 500x500, and that took about 4 minutes to create, and it crashed when exiting, so consider this a warning.";
+            } });
         Mines.onValueChanged.AddListener((s) => { if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; else { int.TryParse(s, out mines); Warning.text = ""; } });
     }
+
+
     public void SetBoard()
     {
         if(!isNumeric(Height.text) || !isNumeric(Width.text) || !isNumeric(Mines.text))

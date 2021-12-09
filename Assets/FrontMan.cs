@@ -9,6 +9,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using UnityEngine.EventSystems;
 using static FrontMan;
+using DG.Tweening;
 
 public class FrontMan : MonoBehaviour
 {
@@ -35,9 +36,9 @@ public class FrontMan : MonoBehaviour
     }
     private void Start()
     {
-        
+
         //SetBoard();
-        
+
     }
 
     [Button]
@@ -47,31 +48,33 @@ public class FrontMan : MonoBehaviour
     }
     public void SetBoard(int _height, int _width, int _mines)
     {
-        playing = true;
-        InGameMenuAI.IGM.Init(_height, _width, _mines);
-        TotalTiles = _height * _width;
+        height = _height;
+        width = _width;
         mines = _mines;
+        playing = true;
+        InGameMenuAI.IGM.Init(height, width, mines);
+        TotalTiles = height * width;
         TotalFlagged = 0;
         TilesRevealed = 0;
-        tiles = new List<Tile>(); 
+        tiles = new List<Tile>();
         foreach (Transform child in TileParent) Destroy(child.gameObject);
 
-        for (int x = 0; x < _width; x++)
+        for (int x = 0; x < width; x++)
         {
-            for (int y = 0; y < _height; y++)
+            for (int y = 0; y < height; y++)
             {
                 tiles.Add(Instantiate(tile, new Vector2(x, y), Quaternion.identity, TileParent));  //Spawning grid
                 tiles[tiles.Count - 1].name = $"Tile x:{x}, y:{y}";
             }
         }
 
-        
-        Camera.main.transform.position = new Vector3(_height / 2, _width / 2, -10);
-        Camera.main.orthographicSize = Mathf.Clamp((Mathf.Max(_height, _width) / 2)+3, 2, 20);  //Scales the camera to envolope larger maps
+
+        Camera.main.transform.position = new Vector3(width / 2, height / 2, - 10);
+        Camera.main.orthographicSize = Mathf.Clamp((Mathf.Max(height, width) / 2) + 3, 2, SettingMenuAI.SM.GetCC() ? 20 : 999);  //Scales the camera to envolope larger maps
     }
     private void Update()
     {
-        if(TilesRevealed == 0 && Input.GetMouseButtonDown(0))
+        if (TilesRevealed == 0 && Input.GetMouseButtonDown(0))
         {
             var hits = Physics2D.RaycastAll(Camera.main.ScreenToWorldPoint(Input.mousePosition), transform.forward, 100f);  //Getting the tile that was clicked
             Tile ClickedTile = null;
@@ -101,7 +104,7 @@ public class FrontMan : MonoBehaviour
                 tempList.RemoveAt(i);
                 tempMines--;
             }
-            ClickedTile.Reveal();
+            ClickedTile.Reveal(0);
             InGameMenuAI.IGM.StartTimer();
         }
 
@@ -113,14 +116,66 @@ public class FrontMan : MonoBehaviour
         }
 
 
+        if(Input.GetKeyDown(KeyCode.Q) && playing)
+        {
+            Camera.main.transform.DOMove(tiles.Where(T=>!T.Flagged&&!T.revealed).OrderBy(T=>Vector3.Distance(Camera.main.transform.position, T.pos)).ToList()[0].pos.Change(0,0,-10), 1);
+        }
+        if (Input.GetKeyDown(KeyCode.E) && playing)
+        {
+            Camera.main.transform.DOMove(tiles.Where(T => T.revealed && T.NearbyTiles.Where(tile=>!tile.Flagged && !tile.revealed).ToList().Count > 0).ToList().RandomPicker<Tile>().pos.Change(0, 0, -10), 1);
+        }
 
 
 
         OnUpdate?.Invoke();
     }
+
+
+    public void DestroyTileParent()
+    {
+        Destroy(TileParent.gameObject);
+        GameObject TileParentTemp = new GameObject();
+        TileParent = TileParentTemp.transform;
+    }
+    public void DeActivateBoard(int recursion)
+    {
+        int limit = recursion+50;
+        for (; recursion < limit; recursion++)
+        {
+            try { TileParent.GetChild(recursion).gameObject.SetActive(false); } catch (Exception) { }
+            if (TileParent.childCount == recursion) return;
+        }
+        StartCoroutine(WaitToDeActivate(recursion));
+    }
+    IEnumerator WaitToDeActivate(int recursion)
+    {
+        yield return 0;
+        DeActivateBoard(recursion);
+    }
+
+    public void DestroyBoard()
+    {
+        for (int i = 0; i < 50; i++)
+        {
+            try { Destroy(TileParent.GetChild(i).gameObject); } catch (Exception) {}
+            if (TileParent.childCount == 0) return;
+        }
+        StartCoroutine(WaitToDestroy());
+    }
+
+    IEnumerator WaitToDestroy()
+    {
+        yield return 0;
+        DestroyBoard();
+    }
+
+    public void EXitGame()
+    {
+        Application.Quit();
+    }
 }
 
-public class ExtendedMonoBehaviour : MonoBehaviour
+public class ExtendedMonoBehaviour: MonoBehaviour
 {
 
 }
@@ -130,6 +185,16 @@ public static class Helper
     public static Vector3 Change(this Vector3 pos, float x, float y, float z)
     {
         return pos + new Vector3(x, y, z);
+    }
+
+    public static T RandomPicker<T>(this List<T> list)
+    {
+        return list[UnityEngine.Random.Range(0, list.Count)];
+    }
+
+    public static int ToInt(this bool b)
+    {
+        return b ? 1 : 0;
     }
 }
 

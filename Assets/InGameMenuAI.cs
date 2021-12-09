@@ -9,6 +9,8 @@ using System.Linq;
 using System.Security.Cryptography;
 using UnityEngine.EventSystems;
 using static FrontMan;
+using UnityEngine.SceneManagement;
+using DG.Tweening;
 
 public class InGameMenuAI : MonoBehaviour
 {
@@ -29,10 +31,27 @@ public class InGameMenuAI : MonoBehaviour
         IGM = this;
     }
 
+    public bool settingsOut;
     private void Update()
     {
         if (timeStart != 0) TimerText.text = Mathf.Round(Time.time - timeStart) + "";
         if (FM.playing) Mines.text = startMines - FM.TotalFlagged+"";
+
+        if(Input.GetKeyDown(KeyCode.Escape))ToggleSettings();
+    }
+
+    public void ToggleSettings()
+    {
+        if (!settingsOut)
+        {
+            MainMenuAI.MM.SettingsMenu.transform.DOMove(transform.position, .2f);
+            settingsOut = true;
+        }
+        else
+        {
+            MainMenuAI.MM.SettingsMenu.DOMove(MainMenuAI.MM.gotoPoint.position, .2f);
+            settingsOut = false;
+        }
     }
 
     public void Init(int _height, int _width, int _startMines)
@@ -89,14 +108,17 @@ public class InGameMenuAI : MonoBehaviour
         }
         else
         {
+            //SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             ExitText.text = "Exit";
             sure = false;
             MainMenuAI.MM.PutBack();
-            foreach (Transform child in FM.TileParent) Destroy(child.gameObject);
+            FM.DestroyTileParent();
             StopTimer();
 
             FlaggedAll = false;
             FlagAllText.text = "Flag All";
         }
     }
+
+
 }

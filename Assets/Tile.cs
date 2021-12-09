@@ -21,9 +21,9 @@ public class Tile : MonoBehaviour
     public bool Flagged = false;
 
     [SerializeField] bool _ContainsMine = false;
-    [SerializeField] List<Tile> NearbyTiles = new List<Tile>();
+    public List<Tile> NearbyTiles = new List<Tile>();
     public int NearbyMines = 0;
-    
+
     public bool ContainsMine
     {
         get { return _ContainsMine; }
@@ -50,17 +50,13 @@ public class Tile : MonoBehaviour
     {
         NearbyTiles = GetNearbyTiles();
     }
-    public void Init()
-    {
-
-    }
 
     private void OnMouseOver()
     {
-        if (FM.TilesRevealed == 0 || !FM.playing) return;  //Returns if the board hasnt been generated yet, or the game is over
+        if (FM.TilesRevealed == 0 || !FM.playing || InGameMenuAI.IGM.settingsOut) return;  //Returns if the board hasnt been generated yet, or the game is over
         if (Input.GetMouseButtonDown(0))
         {
-            if (!revealed) Reveal();    
+            if (!revealed) Reveal(0);
             else CheckNearbyLeftClick();         //if the tile is already revealed, commit a quick reveal
         }
         if (Input.GetMouseButtonDown(1))
@@ -71,11 +67,11 @@ public class Tile : MonoBehaviour
         //if (Input.GetMouseButtonDown(2)) Highlight();
     }
 
-    public void Reveal()
+    public void Reveal(int recursion)  //A recursion parameter is added as if a large amount of revealing happened at once it would cause a stack overflow
     {
-        if (Flagged||revealed) return;  //Flagging a tiles prevents acciedentally revealing it
+        if (Flagged || revealed) return;  //Flagging a tiles prevents acciedentally revealing it
         revealed = true;
-        Cover.enabled = false;
+        if(Cover) Cover.enabled = false;
         if (!ContainsMine)
         {
             FM.TilesRevealed++;
@@ -84,26 +80,33 @@ public class Tile : MonoBehaviour
                 Number.text = NearbyMines + "";
                 Number.color = FM.NumberColors[NearbyMines];
             }
-            else
+            else  //if the tile is not near a mine, reveal ALL surrounding un-revealed tiles
             {
-                foreach (Tile tile in NearbyTiles) tile.Reveal();
+                if (recursion < 5) foreach (Tile tile in NearbyTiles) tile.Reveal(recursion++);
+                else StartCoroutine(WaitToReveal());
             }
         }
-        else
+        else  //if it does contain a mine, dont worry about anything else, just initiate a lost
         {
             if (!FM.playing) return;
             InGameMenuAI.IGM.StopTimer();
             print("LOSER!!!");
             FM.playing = false;
-            Timer.SimpleTimer(()=> { foreach (Tile tile in FM.tiles) tile.Reveal(); }, 2);
+            Timer.SimpleTimer(() => { foreach (Tile tile in FM.tiles) tile.Reveal(0); }, 2);
         }
+    }
+
+    IEnumerator WaitToReveal()
+    {
+        yield return 0;
+        foreach (Tile tile in NearbyTiles) tile.Reveal(0);
     }
 
     void CheckNearbyLeftClick()
     {
         List<Tile> FlaggedTiles = NearbyTiles.Where(T => T.Flagged).ToList();
         List<Tile> UnFlaggedTiles = NearbyTiles.Where(T => !T.Flagged).ToList();
-        if (FlaggedTiles.Count == NearbyMines) foreach (var tile in UnFlaggedTiles) tile.Reveal();
+        if (FlaggedTiles.Count == NearbyMines) foreach (var tile in UnFlaggedTiles) tile.Reveal(0);
     }
     void CheckNearbyRightClick()
     {
@@ -120,7 +123,7 @@ public class Tile : MonoBehaviour
         Flagged = !Flagged;
         Flag.enabled = Flagged;
     }
-    public void SetFlag(bool state)  
+    public void SetFlag(bool state)
     {
         if (revealed) return;
         Flagged = !state;
@@ -147,4 +150,3 @@ public class Tile : MonoBehaviour
         return nearbyTiles;
     }
 }
- 
