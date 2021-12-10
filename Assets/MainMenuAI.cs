@@ -40,7 +40,7 @@ public class MainMenuAI : MonoBehaviour
         SelectedMenu.DOMove(gotoPoint.position, 1);
     }
 
-    public void PutAway()
+    public void PutAway(bool editor = false)
     {
         MMOGPoint = transform.position;
         BMOGPoint = ButtonMenu.position;
@@ -48,7 +48,8 @@ public class MainMenuAI : MonoBehaviour
         ButtonMenu.DOMove(ButtonMenuLeavePoint.position, 1);
         transform.DOMove(MainMenuLeavePoint.position, 1);
         SelectedMenu.DOMove(leavePoint.position, 1);
-        InGameMenuAI.IGM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, 1080, 0), 1);
+        if(!editor) InGameMenuAI.IGM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, 1080, 0), 1);
+        else InEditorMenuAI.IEM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, 1080, 0), 1);
     }
     public void PutBack()
     {
@@ -57,5 +58,6 @@ public class MainMenuAI : MonoBehaviour
         SelectedMenu.DOMove(SMOGPoint, 1);
         SettingsMenu.DOMove(leavePoint.position, 1);
         InGameMenuAI.IGM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, -1080, 0), 1);
+        InEditorMenuAI.IEM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, -1080, 0), 1);
     }
 }
