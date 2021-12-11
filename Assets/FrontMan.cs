@@ -13,10 +13,12 @@ using DG.Tweening;
 
 public class FrontMan : MonoBehaviour
 {
-    [SerializeField] int height;
-    [SerializeField] int width;
+    public int height;
+    public int width;
     [SerializeField] int mines;
-    [SerializeField] Tile tile;
+    public Tile tile;
+    [SerializeField] Transform backGround;
+    public List<Vector2> mineLocations;
     public Transform TileParent;
     public List<Tile> tiles;
     public static FrontMan FM;
@@ -30,6 +32,12 @@ public class FrontMan : MonoBehaviour
 
     public System.Action OnUpdate;
 
+    public int TileRevealsPerFrame;
+
+    int backgroundSpawns = 10;
+    public Transform bsTrans;
+    public int bsTransCC = 0;
+
     private void Awake()
     {
         FM = this;
@@ -38,7 +46,21 @@ public class FrontMan : MonoBehaviour
     {
 
         //SetBoard();
+        bsTrans = new GameObject("bsTrans").transform;
+        StartCoroutine(spawner());
+    }
 
+    IEnumerator spawner()
+    {
+        yield return 0;
+        if (!playing)
+        {
+            for (int i = 0; i < backgroundSpawns; i++)
+            {
+                Instantiate(tile, new Vector3(-99, -99, 0), Quaternion.identity, bsTrans);
+            }
+        }
+        StartCoroutine(spawner());
     }
 
     [Button]
@@ -46,7 +68,30 @@ public class FrontMan : MonoBehaviour
     {
         SetBoard(height, width, mines);
     }
+
     public void SetBoard(int _height, int _width, int _mines)
+    {
+        height = _height;
+        width = _width;
+        mines = _mines;
+        playing = true;
+        tiles = new List<Tile>();
+        InGameMenuAI.IGM.Init(height, width, mines);
+        TotalTiles = height * width;
+        TotalFlagged = 0;
+        TilesRevealed = 0;
+        TileParent.gameObject.SetActive(false);
+        TileParent = new GameObject("NewTileParent").transform;
+        TileParent.gameObject.SetActive(true);
+
+        Transform background =  Instantiate(backGround, TileParent).transform;
+        background.localScale = new Vector3(width, height, 0);
+        background.position = new Vector3((width / 2), (height / 2), 0);
+
+        Camera.main.transform.position = new Vector3(width / 2, height / 2, -10);
+        Camera.main.orthographicSize = Mathf.Clamp((Mathf.Max(height, width) / 2) + 3, 2, SettingMenuAI.SM.GetCC() ? 20 : 999);  //Scales the camera to envolope larger maps
+    }
+    public void OLDSetBoard(int _height, int _width, int _mines)
     {
         height = _height;
         width = _width;
@@ -72,7 +117,109 @@ public class FrontMan : MonoBehaviour
         Camera.main.transform.position = new Vector3(width / 2, height / 2, - 10);
         Camera.main.orthographicSize = Mathf.Clamp((Mathf.Max(height, width) / 2) + 3, 2, SettingMenuAI.SM.GetCC() ? 20 : 999);  //Scales the camera to envolope larger maps
     }
+
     private void Update()
+    {
+        bsTransCC = bsTrans.childCount;
+        OnUpdate?.Invoke();
+        TileRevealsPerFrame = Tile.totalRevealsThisFrame;
+        Tile.totalRevealsThisFrame = 0;
+        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        if (!playing 
+            || !mouseWorldPos.x.FInRange(0, width)
+            || !mouseWorldPos.y.FInRange(0, height)) return;
+        
+
+        if (TilesRevealed > 0 
+            && Input.GetMouseButtonDown(0))
+        {
+            Tile t = null;
+            try
+            {
+                t = Physics2D.Raycast(mouseWorldPos, Vector2.zero).transform.GetComponent<Tile>();
+            }
+            catch (NullReferenceException)
+            {
+                t = Instantiate(tile, mouseWorldPos.Floor().Change(0, 0, 10), Quaternion.identity, TileParent);
+                t.transform.SetParent(TileParent);
+                tiles.Add(t);
+                t.Init(gameObject);
+                t.Reveal();
+            }
+
+            
+        }
+
+        if (TilesRevealed > 0 && Input.GetMouseButtonDown(1))
+        {
+            Tile t = null;
+            try
+            {
+                t = Physics2D.Raycast(mouseWorldPos, Vector2.zero).transform.GetComponent<Tile>();
+            }
+            catch (NullReferenceException)
+            {
+                print(mouseWorldPos.Floor());
+                t = Instantiate(tile, mouseWorldPos.Floor().Change(0, 0, 10), Quaternion.identity, TileParent);
+                t.transform.SetParent(TileParent);
+                tiles.Add(t);
+                t.Init(gameObject);
+                t.ToggleFlag();
+            }
+        }
+
+
+        if (TilesRevealed == 0 && Input.GetMouseButtonDown(0))
+        {
+            Tile ClickedTile = Instantiate(tile, mouseWorldPos.Floor().Change(0,0,10), Quaternion.identity, TileParent);
+            tiles.Add(ClickedTile);
+            int tempMines = mines;
+            mineLocations = new List<Vector2>();
+            print(ClickedTile.pos);
+            while (tempMines > 0)
+            {
+                int randX;
+                int randY;
+                do  {
+                    randX = UnityEngine.Random.Range(0, width - 1);
+                    randY = UnityEngine.Random.Range(0, height - 1);
+                } while ((randX.IInRange(ClickedTile.pos.x - 1, ClickedTile.pos.x + 1) 
+                      && randY.IInRange(ClickedTile.pos.y - 1, ClickedTile.pos.y + 1))
+                      || mineLocations.Contains(new Vector2(randX, randY)));
+
+                mineLocations.Add(new Vector2(randX, randY));
+                tempMines--;
+            }
+            mineLocations = mineLocations.OrderBy(t => t.x).ThenBy(t => t.y).ToList();
+            ClickedTile.Init(gameObject);
+            ClickedTile.Reveal();
+            InGameMenuAI.IGM.StartTimer();
+        }
+
+        
+
+        if ((TotalTiles - mines) == TilesRevealed && TotalFlagged == mines && playing)
+        {
+            InGameMenuAI.IGM.StopTimer();
+            print("WINNER!!!");
+            playing = false;
+        }
+
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            Camera.main.transform.DOMove(tiles.Where(T => !T.Flagged && !T.revealed).OrderBy(T => Vector3.Distance(Camera.main.transform.position, T.pos)).ToList()[0].pos.Change(0, 0, -10), 1);
+        }
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            Camera.main.transform.DOMove(tiles.Where(T => T.revealed && FM.tiles.Where(tile => T.NearbyTilePos.Contains(tile.pos2) && !tile.Flagged).ToList().Count > 0).ToList().RandomPicker<Tile>().pos.Change(0, 0, -10), 1);
+        }
+
+
+
+        
+    }
+    private void OLDUpdate()
     {
         if (TilesRevealed == 0 && Input.GetMouseButtonDown(0))
         {
@@ -104,7 +251,7 @@ public class FrontMan : MonoBehaviour
                 tempList.RemoveAt(i);
                 tempMines--;
             }
-            ClickedTile.Reveal(0);
+            ClickedTile.Reveal();
             InGameMenuAI.IGM.StartTimer();
         }
 
@@ -122,7 +269,7 @@ public class FrontMan : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.E) && playing)
         {
-            Camera.main.transform.DOMove(tiles.Where(T => T.revealed && T.NearbyTiles.Where(tile=>!tile.Flagged && !tile.revealed).ToList().Count > 0).ToList().RandomPicker<Tile>().pos.Change(0, 0, -10), 1);
+            //Camera.main.transform.DOMove(tiles.Where(T => T.revealed && T.NearbyTiles.Where(tile=>!tile.Flagged && !tile.revealed).ToList().Count > 0).ToList().RandomPicker<Tile>().pos.Change(0, 0, -10), 1);
         }
 
 
@@ -130,7 +277,15 @@ public class FrontMan : MonoBehaviour
         OnUpdate?.Invoke();
     }
 
-
+    [Button]
+    public void OrderTiles()
+    {
+        tiles = tiles.OrderBy(t => t.pos.x).ThenBy(t => t.pos.y).ToList();
+        for (int i = 0; i < tiles.Count; i++)
+        {
+            tiles[i].transform.SetSiblingIndex(i);
+        }
+    }
     public void DestroyTileParent()
     {
         Destroy(TileParent.gameObject);
@@ -177,7 +332,6 @@ public class FrontMan : MonoBehaviour
 
 public class ExtendedMonoBehaviour: MonoBehaviour
 {
-
 }
 
 public static class Helper
@@ -195,6 +349,26 @@ public static class Helper
     public static int ToInt(this bool b)
     {
         return b ? 1 : 0;
+    }
+
+    public static Vector3 Floor(this Vector3 v)
+    {
+        return new Vector3(Mathf.Floor(v.x), Mathf.Floor(v.y), 0);
+    }
+
+    public static bool FInRange(this float x, float incBottom, float incTop)
+    {
+        return (x >= incBottom && x <= incTop) ;
+    }
+
+    public static bool IInRange(this int x, float incBottom, float incTop)
+    {
+        return (x >= incBottom && x <= incTop);
+    }
+
+    public static Vector2 V3toV2(this Vector3 v3)
+    {
+        return new Vector2(v3.x, v3.y);
     }
 }
 

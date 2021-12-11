@@ -30,12 +30,13 @@ public class CreateLevelAI : MonoBehaviour
     }
     private void Start()
     {
+        string bigWarning = "Wooooaaaaah big numbers there.  Look, one of the main things I wanted to achieve with this game is to allow you to make as big of a board as you want.  HOWEVER:  browser based programs have their limits.  If this board has large un-mined areas then it will take some time to uncover all of those areas.  I have personally tested a 1000x1000 board which had 75000 mines, and it lagged for quite a while.  Consider this a warning.";
         Height.onValueChanged.AddListener((s) => {
             if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls.";
             else
             {
                 int.TryParse(s, out height); Warning.text = "";
-                if (height * width > 4000) Warning.text = "Wooooaaaaah big numbers there.  Look, one of the main things I wanted to achieve with this game is to allow you to make as big of a board as you want.  HOWEVER:  browser based programs have their limits.  I have personally tested up to 500x500, and that took about 4 minutes to create, and it crashed when exiting, so consider this a warning.";
+                if (height * width > 4000) Warning.text = bigWarning;
             }
         });
         Width.onValueChanged.AddListener((s) => {
@@ -43,7 +44,7 @@ public class CreateLevelAI : MonoBehaviour
             else
             {
                 int.TryParse(s, out width); Warning.text = "";
-                if (height * width > 4000) Warning.text = "Wooooaaaaah big numbers there.  Look, one of the main things I wanted to achieve with this game is to allow you to make as big of a board as you want.  HOWEVER:  browser based programs have their limits.  I have personally tested up to 500x500, and that took about 4 minutes to create, and it crashed when exiting, so consider this a warning.";
+                if (height * width > 4000) Warning.text = bigWarning;
             }
         });
         Mines.onValueChanged.AddListener((s) => { if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; else { int.TryParse(s, out mines); Warning.text = ""; } });

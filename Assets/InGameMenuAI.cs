@@ -112,9 +112,10 @@ public class InGameMenuAI : MonoBehaviour
             ExitText.text = "Exit";
             sure = false;
             MainMenuAI.MM.PutBack();
-            FM.DestroyTileParent();
+            //FM.DestroyTileParent();
             StopTimer();
-
+            FM.playing = false;
+            FM.TileParent.gameObject.SetActive(false);
             FlaggedAll = false;
             FlagAllText.text = "Flag All";
         }

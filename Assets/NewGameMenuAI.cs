@@ -75,7 +75,7 @@ public class NewGameMenuAI : MonoBehaviour
             Warning.text = $"More mines that total tiles!  You have {TotalTiles} total tiles.  The amount of mines must be less than or equal to that";
             return;
         }
-        EditorfrontMan.EFM.SetBoard(height, width, mines);
+        FrontMan.FM.SetBoard(height, width, mines);
         MainMenuAI.MM.PutAway();
     }
 

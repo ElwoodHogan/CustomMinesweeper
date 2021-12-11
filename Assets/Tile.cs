@@ -13,42 +13,39 @@ using static FrontMan;
 
 public class Tile : MonoBehaviour
 {
-    [SerializeField] Renderer Cover;
-    [SerializeField] TextMeshPro Number;
-    [SerializeField] Renderer Mine;
-    [SerializeField] Renderer Flag;
+    [SerializeField] GameObject Cover;
+    [SerializeField] GameObject Number;
+    [SerializeField] GameObject Mine;
+    [SerializeField] GameObject FlagP;
+    [SerializeField] GameObject Flag = null;
+    [SerializeField] GameObject Creator;
     public bool revealed = false;
     public bool Flagged = false;
 
     [SerializeField] bool _ContainsMine = false;
-    public List<Tile> NearbyTiles = new List<Tile>();
+    public List<Vector2> NearbyTilePos = new List<Vector2>();
     public int NearbyMines = 0;
+
+    public const int MAX_REVEALS_PER_FRAME = 30;
+    public static int totalRevealsThisFrame = 0;
 
     public bool ContainsMine
     {
         get { return _ContainsMine; }
         set
         {
-            Mine.enabled = value;
             _ContainsMine = value;
-            if (value)
-            {
-                var surrounding = Physics2D.OverlapCircleAll(pos, 1);
-                foreach (var tile in GetNearbyTiles())
-                {
-                    tile.NearbyMines++;
-                    //tile.GetComponent<SpriteRenderer>().color = Color.red;
-                }
-
-            }
         }
     }
     public Vector3 pos => transform.position;
+    public Vector2 pos2 => new Vector3(transform.position.x, transform.position.y);
     public Vector3 Lpos => transform.localPosition;
 
-    private void Start()
+    public void Init(GameObject c)
     {
-        NearbyTiles = GetNearbyTiles();
+        name = $"x:{pos.x}, y:{pos.y}";
+        NearbyTilePos = GetNearbyTilePos();
+        Creator = c;
     }
 
     private void OnMouseOver()
@@ -56,7 +53,7 @@ public class Tile : MonoBehaviour
         if (FM.TilesRevealed == 0 || !FM.playing || InGameMenuAI.IGM.settingsOut) return;  //Returns if the board hasnt been generated yet, or the game is over
         if (Input.GetMouseButtonDown(0))
         {
-            if (!revealed) Reveal(0);
+            if (!revealed) Reveal();
             else CheckNearbyLeftClick();         //if the tile is already revealed, commit a quick reveal
         }
         if (Input.GetMouseButtonDown(1))
@@ -67,61 +64,162 @@ public class Tile : MonoBehaviour
         //if (Input.GetMouseButtonDown(2)) Highlight();
     }
 
-    public void Reveal(int recursion)  //A recursion parameter is added as if a large amount of revealing happened at once it would cause a stack overflow
+    public void Reveal()  //A recursion parameter is added as if a large amount of revealing happened at once it would cause a stack overflow
     {
         if (Flagged || revealed) return;  //Flagging a tiles prevents acciedentally revealing it
         revealed = true;
-        if(Cover) Cover.enabled = false;
+        ContainsMine = FM.mineLocations.Contains(pos2);
         if (!ContainsMine)
         {
             FM.TilesRevealed++;
+            //print(FM.mineLocations.Count);
+            NearbyMines = FM.mineLocations.Intersect(NearbyTilePos).Count();
+            //print(name + ": " +NearbyMines);
             if (NearbyMines > 0)
             {
-                Number.text = NearbyMines + "";
-                Number.color = FM.NumberColors[NearbyMines];
+                Number = Instantiate(Number, transform);
+                TextMeshPro tmp = Number.GetComponent<TextMeshPro>();
+                tmp.text = NearbyMines + "";
+                tmp.color = FM.NumberColors[NearbyMines];
             }
             else  //if the tile is not near a mine, reveal ALL surrounding un-revealed tiles
             {
-                if (recursion < 5) foreach (Tile tile in NearbyTiles) tile.Reveal(recursion++);
+                if (totalRevealsThisFrame < 0)
+                {
+                    //print(NearbyTilePos.Count);
+                    
+
+                    foreach (Vector2 posit in NearbyTilePos.Where(v=>!FM.tiles.Select(t=>t.pos2).ToList().Contains(v)))
+                    {
+                        Tile newTile;
+                        if (FM.bsTrans.childCount > 0)
+                        {
+                            newTile = FM.bsTrans.GetChild(0).GetComponent<Tile>();
+                            newTile.transform.SetParent(FM.TileParent);
+                            newTile.transform.position = posit;
+                        }
+                        else
+                        {
+                            newTile = Instantiate(FM.tile, posit, Quaternion.identity, FM.TileParent);
+                        }
+                        newTile.Init(gameObject);
+                        FM.tiles.Add(newTile);
+                        newTile.Reveal();
+                    }
+                    totalRevealsThisFrame++;
+                }
                 else StartCoroutine(WaitToReveal());
             }
         }
         else  //if it does contain a mine, dont worry about anything else, just initiate a lost
         {
             if (!FM.playing) return;
+            Instantiate(Mine, transform);
             InGameMenuAI.IGM.StopTimer();
             print("LOSER!!!");
             FM.playing = false;
-            Timer.SimpleTimer(() => { foreach (Tile tile in FM.tiles) tile.Reveal(0); }, 2);
+            Timer.SimpleTimer(() => { foreach (Tile tile in FM.tiles) tile.Reveal(); }, 2);
         }
     }
-
+    [Button]
+    public void getnearbymines()
+    {
+        print(NearbyMines = FM.mineLocations.Intersect(NearbyTilePos).Count());
+    }
     IEnumerator WaitToReveal()
     {
         yield return 0;
-        foreach (Tile tile in NearbyTiles) tile.Reveal(0);
+        if (totalRevealsThisFrame < MAX_REVEALS_PER_FRAME)
+        {
+            //print(NearbyTilePos.Count);
+
+
+            foreach (Vector2 posit in NearbyTilePos.Where(v => !FM.tiles.Select(t => t.pos2).ToList().Contains(v)))
+            {
+                Tile newTile;
+                if (FM.bsTrans.childCount > 0)
+                {
+                    newTile = FM.bsTrans.GetChild(0).GetComponent<Tile>();
+                    newTile.transform.SetParent(FM.TileParent);
+                    newTile.transform.position = posit;
+                }
+                else
+                {
+                    newTile = Instantiate(FM.tile, posit, Quaternion.identity, FM.TileParent);
+                }
+                newTile.Init(gameObject);
+                FM.tiles.Add(newTile);
+                newTile.Reveal();
+            }
+            totalRevealsThisFrame++;
+        }
+        else StartCoroutine(WaitToReveal());
     }
 
     void CheckNearbyLeftClick()
     {
-        List<Tile> FlaggedTiles = NearbyTiles.Where(T => T.Flagged).ToList();
-        List<Tile> UnFlaggedTiles = NearbyTiles.Where(T => !T.Flagged).ToList();
-        if (FlaggedTiles.Count == NearbyMines) foreach (var tile in UnFlaggedTiles) tile.Reveal(0);
+        List<Tile> tempTiles = new List<Tile>();
+        foreach (Vector2 posit in NearbyTilePos)
+        {
+            Tile t = null;
+            try
+            {
+                t = Physics2D.Raycast(new Vector2(posit.x + .5f, posit.y + .5f), Vector3.forward).transform.GetComponent<Tile>();
+                tempTiles.Add(t);
+            }
+            catch (NullReferenceException)
+            {
+                t= Instantiate(FM.tile, posit, Quaternion.identity, FM.TileParent);
+                t.transform.SetParent(FM.TileParent);
+                FM.tiles.Add(t);
+                t.Init(gameObject);
+                tempTiles.Add(t);
+            }
+        }
+        List<Tile> FlaggedTiles = tempTiles.Where(T => T.Flagged).ToList();
+        List<Tile> UnFlaggedTiles = tempTiles.Where(T => !T.Flagged).ToList();
+        if (FlaggedTiles.Count == NearbyMines) foreach (var tile in UnFlaggedTiles) tile.Reveal();
     }
     void CheckNearbyRightClick()
     {
-        List<Tile> UnrevealedTiles = NearbyTiles.Where(T => !T.revealed && !T.Flagged).ToList();
-        int FlaggedTiles = NearbyTiles.Where(T => T.Flagged).Count();
+        List<Tile> tempTiles = new List<Tile>();
+        foreach(Vector2 posit in NearbyTilePos)
+        {
+            Tile t = null;
+            try
+            {
+                t = Physics2D.Raycast(new Vector2(posit.x+.5f, posit.y+.5f), Vector3.forward).transform.GetComponent<Tile>();
+                tempTiles.Add(t);
+            }
+            catch (NullReferenceException)
+            {
+                t = Instantiate(FM.tile, posit, Quaternion.identity, FM.TileParent);
+                t.transform.SetParent(FM.TileParent);
+                FM.tiles.Add(t);
+                t.Init(gameObject);
+                tempTiles.Add(t);
+            }
+        }
+        List<Tile> UnrevealedTiles = tempTiles.Where(T => !T.Flagged && !T.revealed).ToList();
+        print(UnrevealedTiles.Count);
+        int FlaggedTiles = tempTiles.Where(T =>  T.Flagged).ToList().Count();
         if (UnrevealedTiles.Count + FlaggedTiles == NearbyMines) foreach (var tile in UnrevealedTiles) tile.ToggleFlag();
     }
 
     public void ToggleFlag()
     {
         if (revealed) return;
+        Cover = Instantiate(Cover, transform);
         if (Flagged) FM.TotalFlagged--;
         else FM.TotalFlagged++;
         Flagged = !Flagged;
-        Flag.enabled = Flagged;
+
+        if (Flag) Flag.SetActive(Flagged);
+        else
+        {
+            Flag = Instantiate(FlagP, transform);
+            Flag.SetActive(Flagged);
+        }
     }
     public void SetFlag(bool state)
     {
@@ -130,7 +228,7 @@ public class Tile : MonoBehaviour
         if (Flagged) FM.TotalFlagged--;
         else FM.TotalFlagged++;
         Flagged = !Flagged;
-        Flag.enabled = Flagged;
+        //Flag.enabled = Flagged;
     }
 
     void Highlight()
@@ -138,15 +236,22 @@ public class Tile : MonoBehaviour
         FM.circleShower.transform.position = pos;
     }
 
+    public List<Vector2> GetNearbyTilePos()
+    {
+        List<Vector2> nearbyTiles = new List<Vector2>();
+        if (pos.x - 1 >= 0)                                         nearbyTiles.Add(new Vector2(pos.x - 1, pos.y));
+        if (pos.x + 1 <= FM.width-1)                                nearbyTiles.Add(new Vector2(pos.x + 1, pos.y));
+        if (pos.y - 1 >= 0)                                         nearbyTiles.Add(new Vector2(pos.x, pos.y - 1));
+        if (pos.y + 1 <= FM.height - 1)                             nearbyTiles.Add(new Vector2(pos.x, pos.y + 1));
+        if (pos.x - 1 >= 0 && pos.y - 1 >= 0)                       nearbyTiles.Add(new Vector2(pos.x - 1, pos.y-1));
+        if (pos.x + 1 <= FM.width -1 && pos.y + 1 <= FM.height-1)   nearbyTiles.Add(new Vector2(pos.x + 1, pos.y + 1));
+        if (pos.x - 1 >= 0 && pos.y + 1 <= FM.height - 1)           nearbyTiles.Add(new Vector2(pos.x - 1, pos.y + 1));
+        if (pos.x + 1 <= FM.width - 1 && pos.y - 1 >= 0)            nearbyTiles.Add(new Vector2(pos.x + 1, pos.y - 1));
+        return nearbyTiles;
+    }
+
     public List<Tile> GetNearbyTiles()
     {
-        List<Tile> nearbyTiles = new List<Tile>();
-        var surrounding = Physics2D.OverlapCircleAll(pos, 1);
-        foreach (var collider in surrounding)
-        {
-            Tile tile = collider.GetComponent<Tile>();
-            if (!tile.ContainsMine) nearbyTiles.Add(tile);
-        }
-        return nearbyTiles;
+        return FM.tiles.Where(tile => NearbyTilePos.Contains(tile.pos2)).ToList();
     }
 }

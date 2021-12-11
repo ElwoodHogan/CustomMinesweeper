@@ -10915,6 +10915,8 @@ MonoBehaviour:
   width: 4
   mines: 4
   tile: {fileID: 1300425092959243243, guid: 97db409cc87525e4a82ae264c49cddf7, type: 3}
+  backGround: {fileID: 1300425092959243252, guid: 98e0d7a0499b44f4f9be0b7697c64649, type: 3}
+  mineLocations: []
   TileParent: {fileID: 1958498434}
   tiles: []
   TilesRevealed: 0
@@ -12266,8 +12268,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Height: {fileID: 2137932337}
-  Width: {fileID: 0}
-  Mines: {fileID: 0}
+  Width: {fileID: 1984803546}
+  Mines: {fileID: 945845213}
   height: 9
   width: 9
   mines: 15
