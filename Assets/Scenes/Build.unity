@@ -10915,6 +10915,7 @@ MonoBehaviour:
   width: 4
   mines: 4
   tile: {fileID: 1300425092959243243, guid: 97db409cc87525e4a82ae264c49cddf7, type: 3}
+  OST: {fileID: 128155495882554510, guid: 239a03325589f644189589b4c98b21fc, type: 3}
   backGround: {fileID: 1300425092959243252, guid: 98e0d7a0499b44f4f9be0b7697c64649, type: 3}
   mineLocations: []
   TileParent: {fileID: 1958498434}
@@ -10934,6 +10935,7 @@ MonoBehaviour:
   - {r: 0.40000004, g: 0, b: 0.40000004, a: 1}
   - {r: 0, g: 0, b: 0, a: 1}
   playing: 0
+  mine: {fileID: 554384712364240725, guid: 49ea17b6d255fe1449ae4b7e707f5149, type: 3}
 --- !u!4 &1741747124
 Transform:
   m_ObjectHideFlags: 0
