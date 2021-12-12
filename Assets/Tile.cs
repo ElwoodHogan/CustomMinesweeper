@@ -214,7 +214,7 @@ public class Tile : MonoBehaviour
 
     void Highlight()
     {
-        FM.circleShower.transform.position = pos;
+        //FM.circleShower.transform.position = pos;
     }
 
     public List<Vector2> GetNearbyTilePos()

@@ -36,6 +36,7 @@ public class OnScreenTester : MonoBehaviour
         if (wait) return;
         FM.TilesRevealed++;
         nearbyMines = FM.mineLocations.Where(v => Vector2.Distance(v, pos2) < 2).Count();
+        name = $"OST x:{pos.x} y:{pos.y}";  //COMMENT OUT POST-FINAL
         if (nearbyMines == 0)
         {
             StartCoroutine(SpawnAboveWhileInScreen());

@@ -102,7 +102,7 @@ public class EditorTile : MonoBehaviour
 
     void Highlight()
     {
-        FM.circleShower.transform.position = pos;
+        //FM.circleShower.transform.position = pos;
     }
 
     public List<EditorTile> GetNearbyTiles()

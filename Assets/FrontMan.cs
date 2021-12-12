@@ -27,7 +27,6 @@ public class FrontMan : MonoBehaviour
     public int TilesRevealed = 0;
     public int TotalFlagged = 0;
     public int TotalTiles = 0;
-    public GameObject circleShower;
     public List<Color> NumberColors = new List<Color>();
 
     public bool playing = false;  //Dictates weather the player is ingame or not
@@ -35,6 +34,8 @@ public class FrontMan : MonoBehaviour
     public System.Action OnUpdate;
 
     [SerializeField] GameObject mine;
+    List<Vector2> flags;
+    [SerializeField] GameObject flag;
 
     private void Awake()
     {
@@ -78,7 +79,7 @@ public class FrontMan : MonoBehaviour
 
 
         tiles = new List<Tile>();
-        
+        flags = new List<Vector2>();
         TotalTiles = height * width;
         TotalFlagged = 0;
         TilesRevealed = 0;
@@ -112,14 +113,38 @@ public class FrontMan : MonoBehaviour
         if(mineLocations.Count > 0) ConsoleProDebug.Watch("Mouse is over mine", mineLocations.Contains(MWPFloored2) + "");
 
         if (TilesRevealed > 0 
-            && Input.GetMouseButtonDown(0))
+            && Input.GetMouseButtonDown(0))             //LEFT CLICK POST-INITAL REVEAL
         {
+            if (flags.Contains(MWPFloored2)) return;  //If theres a flag, ignore the reveal
+
             if (mineLocations.Contains(MWPFloored2))
             {
                 Instantiate(mine, MWPFloored2, Quaternion.identity);
                 //lose
-            }else if(OnScreenTester.TilePosits.Contains(MWPFloored2)){
-                //do a nearby flag+mine check
+            }else if(OnScreenTester.TilePosits.Contains(MWPFloored2)){  //IF CLICKING A REVEALED TILE, INITIATE A QUICK REVEAL
+                List<Collider2D> nearby = Physics2D.OverlapCircleAll(MWPFloored2.Change(.5f, .5f), 1).ToList();
+                //nearby.Remove(Physics2D.Raycast(MWPFloored2.Change(.5f, .5f), Vector3.forward).collider);
+                //print(nearby.Length);
+                int nearbyFlags = nearby.Where(c => c.gameObject.GetComponent<OnScreenTester>() == null).Count();
+                //print(nearbyFlags);
+                //int nearbyHiddenUnflagged = 8 - (nearby.Length - 1);
+                //print(nearbyHiddenUnflagged);
+                if (nearbyFlags == FM.mineLocations.Where(v => Vector2.Distance(v, MWPFloored2) < 2).Count())
+                {
+                        List<Vector2> possibleReveals = new List<Vector2>();
+                        for (int x = (int)MWPFloored2.x - 1; x <= MWPFloored2.x + 1; x++)
+                        {
+                            for (int y = (int)MWPFloored2.y - 1; y <= MWPFloored2.y + 1; y++)
+                            {
+                                possibleReveals.Add(new Vector2(x, y));
+                            }
+                        }
+                    possibleReveals.Remove(MWPFloored2);
+                        print(possibleReveals.Where(v => nearby.Where(c => c.transform.position.V3toV2() == v).Count() == 0).Count());
+                        possibleReveals = possibleReveals.Where(v => nearby.Where(c => c.transform.position.V3toV2() == v).Count() == 0).ToList();
+                        print(possibleReveals);
+                        foreach (var vector in possibleReveals) Instantiate(OST, vector, Quaternion.identity, TileParent);
+                }
             }
             else
             {
@@ -129,21 +154,52 @@ public class FrontMan : MonoBehaviour
             
         }
 
-        if (TilesRevealed > 0 && Input.GetMouseButtonDown(1))
+        if (TilesRevealed > 0 && Input.GetMouseButtonDown(1))  //RIGHT CLICK POST-INITIAL REVEAL
         {
-            Tile t = null;
-            try
+            var hit = Physics2D.Raycast(MWPFloored2.Change(.5f,.5f), Vector3.forward);
+            
+            if (hit)
             {
-                t = Physics2D.Raycast(mouseWorldPos, Vector2.zero).transform.GetComponent<Tile>();
+                print(hit.transform.gameObject.name);
+                print(hit);
+                if (flags.Contains(MWPFloored2))
+                {
+                    Destroy(hit.transform.gameObject);
+                    flags.Remove(MWPFloored2);
+                    return;
+                }
+                else
+                {
+                    Collider2D[] nearby = Physics2D.OverlapCircleAll(MWPFloored2.Change(.5f, .5f), 1);
+                    print(nearby.Length);
+                    int nearbyFlags = nearby.Where(c => c.gameObject.GetComponent<OnScreenTester>() == null).Count();
+                    print(nearbyFlags);
+                    int nearbyHiddenUnflagged = 8 - (nearby.Length - 1);
+                    print(nearbyHiddenUnflagged);
+                    if (nearbyHiddenUnflagged != 0)
+                    {
+                        if (FM.mineLocations.Where(v => Vector2.Distance(v, MWPFloored2) < 2).Count() == nearbyHiddenUnflagged)
+                        {
+                            List<Vector2> possibleReveals = new List<Vector2>();
+                            for (int x = (int)MWPFloored2.x - 1; x <= MWPFloored2.x + 1; x++)
+                            {
+                                for (int y = (int)MWPFloored2.y - 1; y <= MWPFloored2.y + 1; y++)
+                                {
+                                    possibleReveals.Add(new Vector2(x, y));
+                                }
+                            }
+                            print(possibleReveals.Where(v => nearby.Where(c => c.transform.position.V3toV2() == v).Count() == 0).Count());
+                            possibleReveals = possibleReveals.Where(v => nearby.Where(c => c.transform.position.V3toV2() == v).Count() == 0).ToList();
+                            print(possibleReveals);
+                            foreach (var vector in possibleReveals) Instantiate(OST, vector, Quaternion.identity, TileParent);
+                        }
+                    }
+                }
             }
-            catch (NullReferenceException)
+            else
             {
-                print(MWPFloored);
-                t = Instantiate(tile, MWPFloored, Quaternion.identity, TileParent);
-                t.transform.SetParent(TileParent);
-                tiles.Add(t);
-                t.Init(gameObject);
-                t.ToggleFlag();
+                flags.Add(MWPFloored2);
+                Instantiate(flag, MWPFloored2, Quaternion.identity, TileParent);
             }
         }
 
@@ -273,6 +329,10 @@ public static class Helper
     public static Vector3 Change(this Vector3 pos, float x, float y, float z)
     {
         return pos + new Vector3(x, y, z);
+    }
+    public static Vector2 Change(this Vector2 pos, float x, float y)
+    {
+        return pos + new Vector2(x, y);
     }
 
     public static T RandomPicker<T>(this List<T> list)
