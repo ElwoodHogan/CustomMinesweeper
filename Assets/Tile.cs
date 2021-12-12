@@ -19,6 +19,7 @@ public class Tile : MonoBehaviour
     [SerializeField] GameObject FlagP;
     [SerializeField] GameObject Flag = null;
     [SerializeField] GameObject Creator;
+    [SerializeField] Renderer whiteSquar;
     public bool revealed = false;
     public bool Flagged = false;
 
@@ -87,21 +88,11 @@ public class Tile : MonoBehaviour
                 if (totalRevealsThisFrame < 0)
                 {
                     //print(NearbyTilePos.Count);
-                    
 
-                    foreach (Vector2 posit in NearbyTilePos.Where(v=>!FM.tiles.Select(t=>t.pos2).ToList().Contains(v)))
+
+                    foreach (Vector2 posit in NearbyTilePos.Where(v => !FM.tiles.Select(t => t.pos2).ToList().Contains(v)))
                     {
-                        Tile newTile;
-                        if (FM.bsTrans.childCount > 0)
-                        {
-                            newTile = FM.bsTrans.GetChild(0).GetComponent<Tile>();
-                            newTile.transform.SetParent(FM.TileParent);
-                            newTile.transform.position = posit;
-                        }
-                        else
-                        {
-                            newTile = Instantiate(FM.tile, posit, Quaternion.identity, FM.TileParent);
-                        }
+                        Tile newTile = Instantiate(FM.tile, posit, Quaternion.identity, FM.TileParent);
                         newTile.Init(gameObject);
                         FM.tiles.Add(newTile);
                         newTile.Reveal();
@@ -136,17 +127,7 @@ public class Tile : MonoBehaviour
 
             foreach (Vector2 posit in NearbyTilePos.Where(v => !FM.tiles.Select(t => t.pos2).ToList().Contains(v)))
             {
-                Tile newTile;
-                if (FM.bsTrans.childCount > 0)
-                {
-                    newTile = FM.bsTrans.GetChild(0).GetComponent<Tile>();
-                    newTile.transform.SetParent(FM.TileParent);
-                    newTile.transform.position = posit;
-                }
-                else
-                {
-                    newTile = Instantiate(FM.tile, posit, Quaternion.identity, FM.TileParent);
-                }
+                Tile newTile = Instantiate(FM.tile, posit, Quaternion.identity, FM.TileParent);
                 newTile.Init(gameObject);
                 FM.tiles.Add(newTile);
                 newTile.Reveal();

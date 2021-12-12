@@ -46,8 +46,8 @@ public class FrontMan : MonoBehaviour
     {
 
         //SetBoard();
-        bsTrans = new GameObject("bsTrans").transform;
-        StartCoroutine(spawner());
+        //bsTrans = new GameObject("bsTrans").transform;
+        //StartCoroutine(spawner());
     }
 
     IEnumerator spawner()
@@ -120,7 +120,7 @@ public class FrontMan : MonoBehaviour
 
     private void Update()
     {
-        bsTransCC = bsTrans.childCount;
+        //bsTransCC = bsTrans.childCount;
         OnUpdate?.Invoke();
         TileRevealsPerFrame = Tile.totalRevealsThisFrame;
         Tile.totalRevealsThisFrame = 0;

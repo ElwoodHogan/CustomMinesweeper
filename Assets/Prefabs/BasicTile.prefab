@@ -9,11 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1300425092959243252}
-  - component: {fileID: 1300425092959243243}
-  - component: {fileID: 1300425092959243242}
   - component: {fileID: 3297862973696659581}
+  - component: {fileID: -8000249459082174811}
   m_Layer: 0
-  m_Name: Tile
+  m_Name: BasicTile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -33,56 +32,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1300425092959243243
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1300425092959243240}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2497bff0d026a494185adc7de2861389, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Cover: {fileID: 465466212928622536, guid: b52446487129e6548b10f8749a5b86db, type: 3}
-  Number: {fileID: 881981215238254617, guid: ff7943682cb4a79428dd0f215c503b86, type: 3}
-  Mine: {fileID: 554384712364240725, guid: 49ea17b6d255fe1449ae4b7e707f5149, type: 3}
-  FlagP: {fileID: 7776788620183013225, guid: f6abf526ce7c75d4a967350f336ae788, type: 3}
-  Flag: {fileID: 0}
-  Creator: {fileID: 0}
-  whiteSquar: {fileID: 3297862973696659581}
-  revealed: 0
-  Flagged: 0
-  _ContainsMine: 0
-  NearbyTilePos: []
-  NearbyMines: 0
---- !u!61 &1300425092959243242
-BoxCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1300425092959243240}
-  m_Enabled: 1
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_UsedByComposite: 0
-  m_Offset: {x: 0.5, y: 0.5}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 2, y: 2}
-    newSize: {x: 1, y: 1}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  serializedVersion: 2
-  m_Size: {x: 1, y: 1}
-  m_EdgeRadius: 0
 --- !u!212 &3297862973696659581
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -134,3 +83,15 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &-8000249459082174811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1300425092959243240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ba96ded9de655d4f9df62e3f4067012, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
