@@ -1,15 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using Sirenix.OdinInspector;
-using System;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Security.Cryptography;
-using UnityEngine.EventSystems;
-using static FrontMan;
 using TMPro;
+using UnityEngine;
+using static FrontMan;
 
 public class EditorTile : MonoBehaviour
 {
@@ -32,7 +24,7 @@ public class EditorTile : MonoBehaviour
             Mine.enabled = value;
             Number.enabled = !value;
             _ContainsMine = value;
-            InEditorMenuAI.IEM.mines+=value?1:-1;
+            InEditorMenuAI.IEM.mines += value ? 1 : -1;
             foreach (var tile in NearbyTiles)
             {
                 if (value) tile.IncrimentMines();
@@ -79,7 +71,7 @@ public class EditorTile : MonoBehaviour
 
     public void ToggleCovor()
     {
-        if (Flagged||ContainsMine) return;
+        if (Flagged || ContainsMine) return;
         revealed = !revealed;
         Cover.enabled = !Cover.enabled;
     }

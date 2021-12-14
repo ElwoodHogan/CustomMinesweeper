@@ -1,18 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using Sirenix.OdinInspector;
-using System;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Security.Cryptography;
-using UnityEngine.EventSystems;
-using TMPro;
-using static FrontMan;
 
 public class Tile : MonoBehaviour
 {
+    /*
     [SerializeField] GameObject Cover;
     [SerializeField] GameObject Number;
     [SerializeField] GameObject Mine;
@@ -198,7 +188,6 @@ public class Tile : MonoBehaviour
         if (Flag) Flag.SetActive(Flagged);
         else
         {
-            Flag = Instantiate(FlagP, transform);
             Flag.SetActive(Flagged);
         }
     }
@@ -235,4 +224,5 @@ public class Tile : MonoBehaviour
     {
         return FM.tiles.Where(tile => NearbyTilePos.Contains(tile.pos2)).ToList();
     }
+    */
 }

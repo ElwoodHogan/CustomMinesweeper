@@ -1,26 +1,22 @@
-using System.Collections;
-using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Sirenix.OdinInspector;
-using System;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Security.Cryptography;
-using UnityEngine.EventSystems;
 using static FrontMan;
-using TMPro;
 
 public class NewGameMenuAI : MonoBehaviour
 {
     [SerializeField] InputField Height;
     [SerializeField] InputField Width;
     [SerializeField] InputField Mines;
+    [SerializeField] InputField ExtraLives;
     public Toggle SafetyMode;
     [SerializeField] int height = 9;
     [SerializeField] int width = 9;
     [SerializeField] int mines = 15;
+    [SerializeField] int extraLives = 0;
     [SerializeField] TextMeshProUGUI Warning;
+    [SerializeField] TextMeshProUGUI ReccomendedMines;
+
     public static NewGameMenuAI NGM;
     private void Awake()
     {
@@ -28,23 +24,65 @@ public class NewGameMenuAI : MonoBehaviour
     }
     private void Start()
     {
-        Height.onValueChanged.AddListener((s)=> { 
+        string saturationWarning = "WARNING: This map is heavily saturated with mines, meaning mine generation will use a secondary algorithm, which takes much to genrate at larger map sizes (i.e. 400x400+).  " +
+                    "For quick generation, use at most ";
+        Height.onValueChanged.AddListener((s) =>
+        {
+            if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls.";
+            else
+            {
+                int.TryParse(s, out height); Warning.text = "";
+                if (isNumeric(Width.text))
+                {
+                    ReccomendedMines.text = "Reccomended amount of mines for board size: " + Mathf.Floor((width * height) * .18f);
+                }
+                if (mines > (width * height * .995) + 1)
+                {
+                    Warning.text = saturationWarning + Mathf.Floor((float)(width * height * .995) + 1) + " mines";
+                }
+            }
+        });
+        Width.onValueChanged.AddListener((s) =>
+        {
+            if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls.";
+            else
+            {
+                int.TryParse(s, out width); Warning.text = "";
+                if (isNumeric(Height.text))
+                {
+                    ReccomendedMines.text = "Reccomended amount of mines for board size: " + Mathf.Floor((width * height) * .18f);
+                }
+            }
+            if (mines > (width * height * .995) + 1)
+            {
+                Warning.text = saturationWarning + Mathf.Floor((float)(width * height * .995) + 1) + " mines";
+            }
+        });
+        Mines.onValueChanged.AddListener((s) => { 
             if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; 
-            else {int.TryParse(s, out height); Warning.text = "";
-                if (height * width > 4000) Warning.text = "Wooooaaaaah big numbers there.  Look, one of the main things I wanted to achieve with this game is to allow you to make as big of a board as you want.  HOWEVER:  browser based programs have their limits.  I have personally tested up to 500x500, and that took about 4 minutes to create, and it crashed when exiting, so consider this a warning.";
+            else { int.TryParse(s, out mines); Warning.text = "";
+                if (mines > (width * height * .995) + 1)
+                {
+                    Warning.text = saturationWarning + Mathf.Floor((float)(width * height * .995) + 1) + " mines";
+                }
             } });
-        Width.onValueChanged.AddListener((s) => { 
-            if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; 
-            else {int.TryParse(s, out width); Warning.text = "";
-                if (height * width > 4000) Warning.text = "Wooooaaaaah big numbers there.  Look, one of the main things I wanted to achieve with this game is to allow you to make as big of a board as you want.  HOWEVER:  browser based programs have their limits.  I have personally tested up to 500x500, and that took about 4 minutes to create, and it crashed when exiting, so consider this a warning.";
-            } });
-        Mines.onValueChanged.AddListener((s) => { if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; else { int.TryParse(s, out mines); Warning.text = ""; } });
+        ExtraLives.onValueChanged.AddListener((s) =>
+        {
+            if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls.";
+            else
+            {
+                int.TryParse(s, out extraLives); Warning.text = "";
+            }
+        });
     }
-
+    private void Update()
+    {
+        //ConsoleProDebug.Watch("hashset method?", (mines <= (height*width * .995) + 1) + "");
+    }
 
     public void SetBoard()
     {
-        if(!isNumeric(Height.text) || !isNumeric(Width.text) || !isNumeric(Mines.text))
+        if (!isNumeric(Height.text) || !isNumeric(Width.text) || !isNumeric(Mines.text))
         {
             Warning.text = "Only whole numbers in the input field pls.";
             return;
@@ -62,7 +100,7 @@ public class NewGameMenuAI : MonoBehaviour
         int TotalTiles = height * width;
         if (TotalTiles - 9 < mines && SafetyMode.isOn)
         {
-            Warning.text = $"Too many mines!  Max mines must be at most 9 less than the total tiles!  For your current board size: {TotalTiles}, your minimum amount of mines is {TotalTiles-9}.";
+            Warning.text = $"Too many mines!  Max mines must be at most 9 less than the total tiles!  For your current board size: {TotalTiles}, your minimum amount of mines is {TotalTiles - 9}.";
             return;
         }
         if (TotalTiles < 10 && SafetyMode.isOn)
@@ -70,13 +108,15 @@ public class NewGameMenuAI : MonoBehaviour
             Warning.text = "Board must have at least 10 total tiles!";
             return;
         }
-        if(mines > TotalTiles)
+        if (mines > TotalTiles)
         {
             Warning.text = $"More mines that total tiles!  You have {TotalTiles} total tiles.  The amount of mines must be less than or equal to that";
             return;
         }
-        FrontMan.FM.SetBoard(height, width, mines);
+        FM.SetBoard(height, width, mines);
+        FM.extraLives = extraLives;
         MainMenuAI.MM.PutAway();
+        InGameMenuAI.IGM.resetTimer();
     }
 
     public bool isNumeric(string s)
@@ -95,30 +135,39 @@ public class NewGameMenuAI : MonoBehaviour
         switch (index)
         {
             case 0:
+                SafetyMode.isOn = true;
                 Height.text = 9 + "";
                 Width.text = 9 + "";
-                Mines.text = 15+"";
+                Mines.text = 12 + "";
+                ExtraLives.text = 0 + "";
                 break;
             case 1:
+                SafetyMode.isOn = true;
                 Height.text = 16 + "";
                 Width.text = 16 + "";
                 Mines.text = 40 + "";
+                ExtraLives.text = 0 + "";
                 break;
             case 2:
-                Height.text = 30 + "";
-                Width.text = 16 + "";
+                SafetyMode.isOn = true;
+                Height.text = 16 + "";
+                Width.text = 30 + "";
                 Mines.text = 99 + "";
+                ExtraLives.text = 0 + "";
                 break;
             case 3:
+                SafetyMode.isOn = true;
                 Height.text = 100 + "";
                 Width.text = 100 + "";
                 Mines.text = 3500 + "";
+                ExtraLives.text = 1 + "";
                 break;
             case 4:
                 SafetyMode.isOn = false;
                 Height.text = 1 + "";
                 Width.text = 1 + "";
                 Mines.text = 1 + "";
+                ExtraLives.text = 0 + "";
                 break;
         }
     }

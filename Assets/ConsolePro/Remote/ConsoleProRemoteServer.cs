@@ -2,13 +2,13 @@
 // #define USECONSOLEPROREMOTESERVERINEDITOR
 
 #if (UNITY_WP_8_1 || UNITY_WSA)
-	#define UNSUPPORTEDCONSOLEPROREMOTESERVER
+#define UNSUPPORTEDCONSOLEPROREMOTESERVER
 #endif
 
 #if (!UNITY_EDITOR && DEBUG) || (UNITY_EDITOR && USECONSOLEPROREMOTESERVERINEDITOR)
-	#if !UNSUPPORTEDCONSOLEPROREMOTESERVER
-		#define USECONSOLEPROREMOTESERVER
-	#endif
+#if !UNSUPPORTEDCONSOLEPROREMOTESERVER
+#define USECONSOLEPROREMOTESERVER
+#endif
 #endif
 
 #if UNITY_EDITOR && !USECONSOLEPROREMOTESERVER
@@ -28,32 +28,32 @@ using FlyingWormConsole3.LiteNetLib.Utils;
 
 namespace FlyingWormConsole3
 {
-	#if USECONSOLEPROREMOTESERVER
+#if USECONSOLEPROREMOTESERVER
 public class ConsoleProRemoteServer : MonoBehaviour, INetEventListener
-	#else
-public class ConsoleProRemoteServer : MonoBehaviour
-	#endif
-{
-	public bool useNATPunch = false;
-	public int port = 51000;
+#else
+    public class ConsoleProRemoteServer : MonoBehaviour
+#endif
+    {
+        public bool useNATPunch = false;
+        public int port = 51000;
 
-	#if UNITY_EDITOR && !USECONSOLEPROREMOTESERVER
+#if UNITY_EDITOR && !USECONSOLEPROREMOTESERVER
 
-	#elif UNSUPPORTEDCONSOLEPROREMOTESERVER
+#elif UNSUPPORTEDCONSOLEPROREMOTESERVER
 
 	public void Awake()
 	{
 		Debug.Log("Console Pro Remote Server is not supported on this platform");
 	}
 
-	#elif !USECONSOLEPROREMOTESERVER
+#elif !USECONSOLEPROREMOTESERVER
 	
 	public void Awake()
 	{
 		Debug.Log("Console Pro Remote Server is disabled in release mode, please use a Development build or define DEBUG to use it");
 	}
 
-	#else
+#else
 
 	private NetManager _netServer;
 	private NetPeer _ourPeer;
@@ -146,7 +146,7 @@ public class ConsoleProRemoteServer : MonoBehaviour
 	}
 
 
-	#if UNITY_4_0 || UNITY_4_0_1 || UNITY_4_1 || UNITY_4_2 || UNITY_4_3 || UNITY_4_5 || UNITY_4_6 || UNITY_4_7 || UNITY_4_8 || UNITY_4_9
+#if UNITY_4_0 || UNITY_4_0_1 || UNITY_4_1 || UNITY_4_2 || UNITY_4_3 || UNITY_4_5 || UNITY_4_6 || UNITY_4_7 || UNITY_4_8 || UNITY_4_9
 
 	void OnEnable()
 	{
@@ -163,7 +163,7 @@ public class ConsoleProRemoteServer : MonoBehaviour
 		Application.RegisterLogCallback(null);
 	}
 
-	#else
+#else
 
 	void OnEnable()
 	{
@@ -175,7 +175,7 @@ public class ConsoleProRemoteServer : MonoBehaviour
 		Application.logMessageReceivedThreaded -= LogCallback;
 	}
 
-	#endif
+#endif
 
 	public void LogCallback(string logString, string stackTrace, LogType type)
 	{
@@ -195,13 +195,13 @@ public class ConsoleProRemoteServer : MonoBehaviour
 			}
 		}
 
-		#if CSHARP_7_3_OR_NEWER
+#if CSHARP_7_3_OR_NEWER
 			logString = $"{logString}\n{stackTrace}\n";
 			logs.Add(new QueuedLog() { message = logString, logType = type.ToString(), timestamp = $"[{DateTime.Now.ToString("HH:mm:ss")}]" } );
-		#else
+#else
 			logString = logString + "\n" + stackTrace + "\n";
 			logs.Add(new QueuedLog() { message = logString, logType = type.ToString(), timestamp = "[" + DateTime.Now.ToString("HH:mm:ss") + "]" } );
-		#endif
+#endif
 	}
 	
 	void LateUpdate()
@@ -236,6 +236,6 @@ public class ConsoleProRemoteServer : MonoBehaviour
 		logs.Clear();
 	}
 
-	#endif
-}
+#endif
+    }
 }

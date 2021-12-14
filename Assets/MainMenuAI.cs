@@ -1,15 +1,6 @@
-using System.Collections;
+using DG.Tweening;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using Sirenix.OdinInspector;
-using System;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Security.Cryptography;
-using UnityEngine.EventSystems;
-using static FrontMan;
-using DG.Tweening;
 
 public class MainMenuAI : MonoBehaviour
 {
@@ -48,7 +39,7 @@ public class MainMenuAI : MonoBehaviour
         ButtonMenu.DOMove(ButtonMenuLeavePoint.position, 1);
         transform.DOMove(MainMenuLeavePoint.position, 1);
         SelectedMenu.DOMove(leavePoint.position, 1);
-        if(!editor) InGameMenuAI.IGM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, 1080, 0), 1);
+        if (!editor) InGameMenuAI.IGM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, 1080, 0), 1);
         else InEditorMenuAI.IEM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, 1080, 0), 1);
     }
     public void PutBack()

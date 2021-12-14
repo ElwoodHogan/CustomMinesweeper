@@ -1,18 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
 using Sirenix.OdinInspector;
 using System;
-using System.Collections.Specialized;
+using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using UnityEngine.EventSystems;
-using System.Text;
-using System.IO;
 using System.Numerics;
 using TMPro;
-using static FrontMan;
+using UnityEngine;
+using UnityEngine.UI;
+using static EditorfrontMan;
 
 public class CreateLevelAI : MonoBehaviour
 {
@@ -23,6 +17,7 @@ public class CreateLevelAI : MonoBehaviour
     [SerializeField] int width = 9;
     [SerializeField] int mines = 15;
     [SerializeField] TextMeshProUGUI Warning;
+    [SerializeField] TextMeshProUGUI ReccomendedMines;
     public static CreateLevelAI CL;
     private void Awake()
     {
@@ -31,20 +26,30 @@ public class CreateLevelAI : MonoBehaviour
     private void Start()
     {
         string bigWarning = "Wooooaaaaah big numbers there.  Look, one of the main things I wanted to achieve with this game is to allow you to make as big of a board as you want.  HOWEVER:  browser based programs have their limits.  If this board has large un-mined areas then it will take some time to uncover all of those areas.  I have personally tested a 1000x1000 board which had 75000 mines, and it lagged for quite a while.  Consider this a warning.";
-        Height.onValueChanged.AddListener((s) => {
+        Height.onValueChanged.AddListener((s) =>
+        {
             if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls.";
             else
             {
                 int.TryParse(s, out height); Warning.text = "";
                 if (height * width > 4000) Warning.text = bigWarning;
+                if (isNumeric(Width.text))
+                {
+                    ReccomendedMines.text = "Reccomended amount of mines for board size: " + Mathf.Floor((width * height) * .18f);
+                }
             }
         });
-        Width.onValueChanged.AddListener((s) => {
+        Width.onValueChanged.AddListener((s) =>
+        {
             if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls.";
             else
             {
                 int.TryParse(s, out width); Warning.text = "";
                 if (height * width > 4000) Warning.text = bigWarning;
+                if (isNumeric(Height.text))
+                {
+                    ReccomendedMines.text = "Reccomended amount of mines for board size: " + Mathf.Floor((width * height) * .18f);
+                }
             }
         });
         Mines.onValueChanged.AddListener((s) => { if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; else { int.TryParse(s, out mines); Warning.text = ""; } });
@@ -73,7 +78,7 @@ public class CreateLevelAI : MonoBehaviour
             Warning.text = $"More mines that total tiles!  You have {TotalTiles} total tiles.  The amount of mines must be less than or equal to that";
             return;
         }
-        FM.SetBoard(height, width, mines);
+        EFM.SetBoard(height, width, mines);
         MainMenuAI.MM.PutAway();
     }
 
@@ -356,7 +361,7 @@ public class CreateLevelAI : MonoBehaviour
             try { tempA = digitsA[i]; } catch (Exception) { tempA = 0; }
             try { tempB = digitsB[i]; } catch (Exception) { tempB = 0; }
             if (carry) tempB++;
-            if(tempA < tempB)
+            if (tempA < tempB)
             {
                 carry = true;
                 outP = 6 - (tempB - tempA);
@@ -366,7 +371,7 @@ public class CreateLevelAI : MonoBehaviour
                 carry = false;
                 outP = tempA - tempB;
             }
-            output =  outP + output;
+            output = outP + output;
         }
         return BigInteger.Parse(output);
     }

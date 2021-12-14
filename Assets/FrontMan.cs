@@ -1,28 +1,25 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
+using DG.Tweening;
 using Sirenix.OdinInspector;
 using System;
-using System.Collections.Specialized;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
+using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using static FrontMan;
-using DG.Tweening;
 
 public class FrontMan : MonoBehaviour
 {
     public int height;
     public int width;
     [SerializeField] int mines;
-    public Tile tile;
-    public OnScreenTester OST;
+    public NewTile OST;
     [SerializeField] Transform backGround;
-    public List<Vector2> mineLocations;
+    public HashSet<Vector2Int> mineLocations;
+    List<Vector2Int> borderTiles;
 
     public Transform TileParent;
-    public List<Tile> tiles;
     public static FrontMan FM;
     public int TilesRevealed = 0;
     public int TotalFlagged = 0;
@@ -34,19 +31,21 @@ public class FrontMan : MonoBehaviour
     public System.Action OnUpdate;
 
     [SerializeField] GameObject mine;
-    List<Vector2> flags;
+    public List<Vector2Int> flags;
+    public Dictionary<Vector2, GameObject> flagsDict;
     [SerializeField] GameObject flag;
+
+    public int extraLives = 0;
+
+    public SpriteRenderer grid;
+
+    [SerializeField] Image LoadBar;
+    [SerializeField] bool loadingMines = false;
+    [SerializeField] GameObject heart;
 
     private void Awake()
     {
         FM = this;
-    }
-    private void Start()
-    {
-
-        //SetBoard();
-        //bsTrans = new GameObject("bsTrans").transform;
-        //StartCoroutine(spawner());
     }
 
     [Button]
@@ -62,24 +61,31 @@ public class FrontMan : MonoBehaviour
         mines = _mines;
 
         //Resetting OST stuff and setting a boarder around the board.  This saves the OST from having to do border checks itself
-        OnScreenTester.TilePosits = new HashSet<Vector2>();
-        for (int i = -1; i <= width; i++)
+        NewTile.TilePosits = new HashSet<Vector2Int>();
+        NewTile.NewTiles = new Dictionary<Vector2Int, NewTile>();
+
+        borderTiles = new List<Vector2Int>();
+        for (int i = -2; i <= width + 1; i++)
         {
-            OnScreenTester.TilePosits.Add(new Vector2(i, height));  //Top boarder
-            OnScreenTester.TilePosits.Add(new Vector2(i, -1));      //bottom boarder
+            NewTile.TilePosits.Add(new Vector2Int(i, height));  //Top boarder
+            NewTile.TilePosits.Add(new Vector2Int(i, height + 1));  //Top boarder width 2
+            NewTile.TilePosits.Add(new Vector2Int(i, -1));      //bottom boarder
+            NewTile.TilePosits.Add(new Vector2Int(i, -2));      //bottom boarder width 2
+            borderTiles.Add(new Vector2Int(i, height));
+            borderTiles.Add(new Vector2Int(i, -1));
         }
-        for (int i = -1; i <= height; i++)
+        for (int i = -2; i <= height + 1; i++)
         {
-            OnScreenTester.TilePosits.Add(new Vector2(-1, i));      //right boarder
-            OnScreenTester.TilePosits.Add(new Vector2(width, i));  //left boarder
+            NewTile.TilePosits.Add(new Vector2Int(-1, i));      //right boarder
+            NewTile.TilePosits.Add(new Vector2Int(-2, i));      //right boarder width 2
+            NewTile.TilePosits.Add(new Vector2Int(width, i));  //left boarder
+            NewTile.TilePosits.Add(new Vector2Int(width + 1, i));  //left boarder width 2
+            borderTiles.Add(new Vector2Int(-1, i));
+            borderTiles.Add(new Vector2Int(width, i));
         }
 
-
-
-
-
-        tiles = new List<Tile>();
-        flags = new List<Vector2>();
+        flags = new List<Vector2Int>();
+        flagsDict = new Dictionary<Vector2, GameObject>();
         TotalTiles = height * width;
         TotalFlagged = 0;
         TilesRevealed = 0;
@@ -87,12 +93,13 @@ public class FrontMan : MonoBehaviour
         TileParent = new GameObject("NewTileParent").transform;
         TileParent.gameObject.SetActive(true);
 
-        Transform background =  Instantiate(backGround, TileParent).transform;
+        Transform background = Instantiate(backGround, TileParent).transform;
         background.localScale = new Vector3(width, height, 0);
         background.position = new Vector3(((float)width / 2), ((float)height / 2), 0);
 
         Camera.main.transform.position = new Vector3((float)width / 2, (float)height / 2, -10);
         Camera.main.orthographicSize = Mathf.Clamp((Mathf.Max(height, width) / 2) + 3, 2, SettingMenuAI.SM.GetCC() ? 20 : 999);  //Scales the camera to envolope larger maps
+        grid.enabled = true;
 
         InGameMenuAI.IGM.Init(height, width, mines);
         playing = true;
@@ -100,180 +107,203 @@ public class FrontMan : MonoBehaviour
 
     private void Update()
     {
-        //bsTransCC = bsTrans.childCount;
         OnUpdate?.Invoke();
-        Tile.totalRevealsThisFrame = 0;
         Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        Vector3 MWPFloored = mouseWorldPos.Floor();
-        Vector2 MWPFloored2 = MWPFloored.V3toV2();
-        ConsoleProDebug.Watch("MWPFloored2", MWPFloored2 + "");
-        if (!playing 
+        Vector3Int MWPFloored = mouseWorldPos.Floor();
+        Vector2Int MWPFloored2 = MWPFloored.V3toV2Int();
+
+
+        if (Input.GetKeyDown(KeyCode.Q) && TilesRevealed > 0 && playing)
+        {
+            Vector3 loc = NewTile.TilePosits.Where(
+                v => flags.Where(
+                    f => Vector2.Distance(v, f) < 2).Count()
+                    != mineLocations.Where(l => Vector2.Distance(v, l) < 2).Count()
+                    && !borderTiles.Contains(v)).
+                    OrderBy(
+                        T => Vector3.Distance(Camera.main.transform.position, (Vector2)T)).
+                            ToList()[0].V2toV3(-10).
+                                Change(.5f,.5f, 0);
+            Camera.main.transform.DOMove(loc, 1);
+        }
+        if (Input.GetKeyDown(KeyCode.E) && TilesRevealed > 0 && playing)
+        {
+            Vector3 loc = NewTile.TilePosits.Where(
+                v => flags.Where(
+                    f => Vector2.Distance(v, f) < 2).Count()
+                    != mineLocations.Where(l => Vector2.Distance(v, l) < 2).Count()
+                    && !borderTiles.Contains(v)).ToList().
+                        RandomPicker().V2toV3(-10).
+                            Change(.5f, .5f, 0);
+            Camera.main.transform.DOMove(loc, 1);
+        }
+
+        if (Input.GetKeyDown(KeyCode.G)) grid.enabled = !grid.enabled;
+
+
+        if (!playing
+            || loadingMines
+            || EventSystem.current.IsPointerOverGameObject()
+            || !Application.isFocused
             || !mouseWorldPos.x.FInRange(0, width)
             || !mouseWorldPos.y.FInRange(0, height)) return;
-        if(mineLocations.Count > 0) ConsoleProDebug.Watch("Mouse is over mine", mineLocations.Contains(MWPFloored2) + "");
 
-        if (TilesRevealed > 0 
+        
+
+        if (TilesRevealed > 0
             && Input.GetMouseButtonDown(0))             //LEFT CLICK POST-INITAL REVEAL
         {
             if (flags.Contains(MWPFloored2)) return;  //If theres a flag, ignore the reveal
 
             if (mineLocations.Contains(MWPFloored2))
             {
-                Instantiate(mine, MWPFloored2, Quaternion.identity);
-                //lose
-            }else if(OnScreenTester.TilePosits.Contains(MWPFloored2)){  //IF CLICKING A REVEALED TILE, INITIATE A QUICK REVEAL
-                List<Collider2D> nearby = Physics2D.OverlapCircleAll(MWPFloored2.Change(.5f, .5f), 1).ToList();
-                //nearby.Remove(Physics2D.Raycast(MWPFloored2.Change(.5f, .5f), Vector3.forward).collider);
-                //print(nearby.Length);
-                int nearbyFlags = nearby.Where(c => c.gameObject.GetComponent<OnScreenTester>() == null).Count();
-                //print(nearbyFlags);
-                //int nearbyHiddenUnflagged = 8 - (nearby.Length - 1);
-                //print(nearbyHiddenUnflagged);
-                if (nearbyFlags == FM.mineLocations.Where(v => Vector2.Distance(v, MWPFloored2) < 2).Count())
-                {
-                        List<Vector2> possibleReveals = new List<Vector2>();
-                        for (int x = (int)MWPFloored2.x - 1; x <= MWPFloored2.x + 1; x++)
-                        {
-                            for (int y = (int)MWPFloored2.y - 1; y <= MWPFloored2.y + 1; y++)
-                            {
-                                possibleReveals.Add(new Vector2(x, y));
-                            }
-                        }
-                    possibleReveals.Remove(MWPFloored2);
-                        print(possibleReveals.Where(v => nearby.Where(c => c.transform.position.V3toV2() == v).Count() == 0).Count());
-                        possibleReveals = possibleReveals.Where(v => nearby.Where(c => c.transform.position.V3toV2() == v).Count() == 0).ToList();
-                        print(possibleReveals);
-                        foreach (var vector in possibleReveals) Instantiate(OST, vector, Quaternion.identity, TileParent);
-                }
+                SpawnMine(MWPFloored2);
+            }
+            else if (NewTile.TilePosits.Contains(MWPFloored2))//IF CLICKING A REVEALED TILE, INITIATE A QUICK REVEAL
+            {  
+                NewTile.NewTiles[MWPFloored2].QuickReveal();
             }
             else
             {
-                Instantiate(OST, MWPFloored2, Quaternion.identity, TileParent);
+                SpawnTile(MWPFloored2);
             }
 
-            
+
         }
 
         if (TilesRevealed > 0 && Input.GetMouseButtonDown(1))  //RIGHT CLICK POST-INITIAL REVEAL
         {
-            var hit = Physics2D.Raycast(MWPFloored2.Change(.5f,.5f), Vector3.forward);
-            
-            if (hit)
+
+            if (flags.Contains(MWPFloored2))    //If the player is right clicking a flag, remove it
             {
-                print(hit.transform.gameObject.name);
-                print(hit);
-                if (flags.Contains(MWPFloored2))
+                Destroy(flagsDict[MWPFloored2]);
+                flags.Remove(MWPFloored2);
+                flagsDict.Remove(MWPFloored2);
+                TotalFlagged--;
+                return;
+            }
+            else if (NewTile.TilePosits.Contains(MWPFloored2))  //ELSE IF, the player has clicked a revealed tile, initiat a quick-flag
+            {
+                NewTile.NewTiles[MWPFloored2].QuickFlag();
+            }
+            else           //ELSE the player has clicked an unrevealed tile, in which,  a flag is created
+            {
+                CreateFlag(MWPFloored2);
+            }
+        }
+
+
+
+        StartCoroutine(InitialClick(MWPFloored2));
+
+        if ((TotalTiles - mines) == TilesRevealed && TotalFlagged == mines && playing)
+        {
+            InGameMenuAI.IGM.StopTimer();
+            print("WINNER!!!");
+            playing = false;
+        }
+    }
+
+    IEnumerator InitialClick(Vector2Int MWPFloored2)
+    {
+        if (TilesRevealed == 0 && Input.GetMouseButtonDown(0) && !loadingMines)  //INITIAL CLICK: GENERATES MINE LOCATIONS
+        {
+            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Reset(); stopwatch.Start();
+            loadingMines = true;
+            LoadBar.gameObject.SetActive(true);
+            mineLocations = new HashSet<Vector2Int>();
+
+            float loaded = 0;
+            float segment = 1;
+            HashSet<Vector2Int> squareAroundFirstClick = new HashSet<Vector2Int>();
+            for (int x = MWPFloored2.x - 1; x <= MWPFloored2.x + 1; x++)
+                for (int y = MWPFloored2.y - 1; y <= MWPFloored2.y + 1; y++)
+                    squareAroundFirstClick.Add(new Vector2Int(x, y));
+            yield return 0;
+            if (mines <= (TotalTiles * .995) + 1)  //HASHSET METHOD IS SLOWER FOR EXTREMELY SATURATED MAPS
+            {
+                print("hashset method");
+                yield return 0;
+                Vector2Int gridSize = new Vector2Int(width, height);
+                if (NewGameMenuAI.NGM.SafetyMode.isOn)
                 {
-                    Destroy(hit.transform.gameObject);
-                    flags.Remove(MWPFloored2);
-                    return;
+                    while (mineLocations.Count < mines)
+                    {
+                        Vector2Int vec = new Vector2Int(UnityEngine.Random.Range(1, gridSize.x), UnityEngine.Random.Range(1, gridSize.y));
+                        if (!squareAroundFirstClick.Contains(vec)) mineLocations.Add(vec);
+
+                        if ((((mineLocations.Count) / mines) * 100) > loaded)
+                        {
+                            loaded += segment;
+                            LoadBar.fillAmount = (mines - mineLocations.Count) / mines;
+                            yield return 0;
+                        }
+                    }
                 }
                 else
                 {
-                    Collider2D[] nearby = Physics2D.OverlapCircleAll(MWPFloored2.Change(.5f, .5f), 1);
-                    print(nearby.Length);
-                    int nearbyFlags = nearby.Where(c => c.gameObject.GetComponent<OnScreenTester>() == null).Count();
-                    print(nearbyFlags);
-                    int nearbyHiddenUnflagged = 8 - (nearby.Length - 1);
-                    print(nearbyHiddenUnflagged);
-                    if (nearbyHiddenUnflagged != 0)
+                    while (mineLocations.Count < mines)
                     {
-                        if (FM.mineLocations.Where(v => Vector2.Distance(v, MWPFloored2) < 2).Count() == nearbyHiddenUnflagged)
+                        mineLocations.Add(new Vector2Int(UnityEngine.Random.Range(1, gridSize.x), UnityEngine.Random.Range(1, gridSize.y)));
+                        if (((mineLocations.Count) / mines) * 100 > loaded)
                         {
-                            List<Vector2> possibleReveals = new List<Vector2>();
-                            for (int x = (int)MWPFloored2.x - 1; x <= MWPFloored2.x + 1; x++)
-                            {
-                                for (int y = (int)MWPFloored2.y - 1; y <= MWPFloored2.y + 1; y++)
-                                {
-                                    possibleReveals.Add(new Vector2(x, y));
-                                }
-                            }
-                            print(possibleReveals.Where(v => nearby.Where(c => c.transform.position.V3toV2() == v).Count() == 0).Count());
-                            possibleReveals = possibleReveals.Where(v => nearby.Where(c => c.transform.position.V3toV2() == v).Count() == 0).ToList();
-                            print(possibleReveals);
-                            foreach (var vector in possibleReveals) Instantiate(OST, vector, Quaternion.identity, TileParent);
+                            loaded += segment;
+                            LoadBar.fillAmount = (mines - mineLocations.Count) / mines;
+                            yield return null;
                         }
                     }
                 }
             }
             else
             {
-                flags.Add(MWPFloored2);
-                Instantiate(flag, MWPFloored2, Quaternion.identity, TileParent);
-            }
-        }
-
-
-        if (TilesRevealed == 0 && Input.GetMouseButtonDown(0))
-        {
-            
-            mineLocations = new List<Vector2>();
-            //print(ClickedTile.pos);
-            //int randX;
-            //int randY;
-            //System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-            //stopwatch.Reset();
-            //stopwatch.Start();
-            List<Vector2> possibleMineLocations = new List<Vector2>();
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
+                yield return null;
+                List<Vector2Int> possibleLocations = new List<Vector2Int>();
+                for (int x = 0; x < width; x++)
                 {
-                    possibleMineLocations.Add(new Vector2(x, y));
+                    for (int y = 0; y < height; y++)
+                    {
+                        possibleLocations.Add(new Vector2Int(x, y));
+                    }
+                }
+                if (NewGameMenuAI.NGM.SafetyMode.isOn) foreach (Vector2Int vector in squareAroundFirstClick) possibleLocations.Remove(vector);
+                while (mineLocations.Count < mines)
+                {
+                    Vector2Int vect = possibleLocations.RandomPicker();
+                    possibleLocations.Remove(vect);
+                    mineLocations.Add(vect);
+                    if (((mineLocations.Count) / (float)mines * 100) > loaded)
+                    {
+                        loaded += segment;
+                        LoadBar.fillAmount = (mines - mineLocations.Count) / mines;
+                        yield return 0;
+                    }
                 }
             }
-            if (NewGameMenuAI.NGM.SafetyMode.isOn) possibleMineLocations = new List<Vector2>(possibleMineLocations.Where(v => Vector2.Distance(v, MWPFloored2) >= 2).ToList());
-            //stopwatch.Stop();
-            //Debug.Log("Filling possible list:" +stopwatch.Elapsed);
-            int tempMines = mines;
-            Vector2 vect;
-            while (tempMines > 0)
+            print(mines);
+            print(mineLocations.Count);
+            LoadBar.gameObject.SetActive(false);
+
+
+            if (mineLocations.Contains(MWPFloored2))
             {
-                vect = possibleMineLocations[UnityEngine.Random.Range(0, possibleMineLocations.Count)];
-                possibleMineLocations.Remove(vect);
-                mineLocations.Add(vect);
-                tempMines--;
+                SpawnMine(MWPFloored2);
             }
-            OnScreenTester ClickedTile = Instantiate(OST, MWPFloored, Quaternion.identity, TileParent);
+            else
+            {
+                SpawnTile(MWPFloored2);
+            }
             InGameMenuAI.IGM.StartTimer();
-        }
+            loadingMines = false;
+            print("Loading time: " + stopwatch.Elapsed);
+            stopwatch.Stop();
 
-        if ((TotalTiles - mines) == TilesRevealed && TotalFlagged == mines && playing)
-        {
-            //InGameMenuAI.IGM.StopTimer();
-            print("WINNER!!!");
-            playing = false;
         }
-
-
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            Camera.main.transform.DOMove(tiles.Where(T => !T.Flagged && !T.revealed).OrderBy(T => Vector3.Distance(Camera.main.transform.position, T.pos)).ToList()[0].pos.Change(0, 0, -10), 1);
-        }
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            Camera.main.transform.DOMove(tiles.Where(T => T.revealed && FM.tiles.Where(tile => T.NearbyTilePos.Contains(tile.pos2) && !tile.Flagged).ToList().Count > 0).ToList().RandomPicker<Tile>().pos.Change(0, 0, -10), 1);
-        }
-    }
-
-    [Button]
-    public void OrderTiles()
-    {
-        tiles = tiles.OrderBy(t => t.pos.x).ThenBy(t => t.pos.y).ToList();
-        for (int i = 0; i < tiles.Count; i++)
-        {
-            tiles[i].transform.SetSiblingIndex(i);
-        }
-    }
-    public void DestroyTileParent()
-    {
-        Destroy(TileParent.gameObject);
-        GameObject TileParentTemp = new GameObject();
-        TileParent = TileParentTemp.transform;
+        yield return 0;
     }
     public void DeActivateBoard(int recursion)
     {
-        int limit = recursion+50;
+        int limit = recursion + 50;
         for (; recursion < limit; recursion++)
         {
             try { TileParent.GetChild(recursion).gameObject.SetActive(false); } catch (Exception) { }
@@ -291,7 +321,7 @@ public class FrontMan : MonoBehaviour
     {
         for (int i = 0; i < 50; i++)
         {
-            try { Destroy(TileParent.GetChild(i).gameObject); } catch (Exception) {}
+            try { Destroy(TileParent.GetChild(i).gameObject); } catch (Exception) { }
             if (TileParent.childCount == 0) return;
         }
         StartCoroutine(WaitToDestroy());
@@ -318,9 +348,53 @@ public class FrontMan : MonoBehaviour
     {
         print(GUIUtility.systemCopyBuffer);
     }
+
+    public void CreateFlag(Vector2Int pos)
+    {
+        flags.Add(pos);
+        GameObject fl = Instantiate(flag, pos.V2IntToV3(), Quaternion.identity, TileParent);
+        flagsDict.Add(pos, fl);
+        TotalFlagged++;
+    }
+
+    void SpawnMine(Vector2Int pos)
+    {
+        Instantiate(mine, pos.V2IntToV3(), Quaternion.identity, TileParent);
+        extraLives--;
+        if (extraLives < 0)
+        {
+            InGameMenuAI.IGM.StopTimer();
+            print("YOU LOSE");
+        }
+        else
+        {
+            flags.Add(pos);
+            Destroy(Instantiate(heart, pos.Change(.5f,.5f), Quaternion.identity), 1);
+            TotalFlagged++;
+        }
+    }
+
+    void SpawnTile(Vector2Int loc)
+    {
+        if (NewTile.TilePosits.Add(loc))
+        {
+            NewTile nt = Instantiate(OST, loc.V2IntToV3(), Quaternion.identity, TileParent);
+            NewTile.NewTiles.Add(loc, nt);
+        }
+    }
+
+    [Button]
+    public void SortTiles()
+    {
+        List<NewTile> tempTiles = new Dictionary<Vector2Int, NewTile>(NewTile.NewTiles).Values.ToList().OrderBy(nt=>nt.pos.x).ThenBy(t=>t.pos.y).ToList();
+        for (int i = 0; i < tempTiles.Count; i++)
+        {
+            tempTiles[i].transform.SetSiblingIndex(i);
+        }
+    }
 }
 
-public class ExtendedMonoBehaviour: MonoBehaviour
+public class ExtendedMonoBehaviour : MonoBehaviour
 {
 }
 
@@ -331,6 +405,10 @@ public static class Helper
         return pos + new Vector3(x, y, z);
     }
     public static Vector2 Change(this Vector2 pos, float x, float y)
+    {
+        return pos + new Vector2(x, y);
+    }
+    public static Vector2 Change(this Vector2Int pos, float x, float y)
     {
         return pos + new Vector2(x, y);
     }
@@ -345,14 +423,14 @@ public static class Helper
         return b ? 1 : 0;
     }
 
-    public static Vector3 Floor(this Vector3 v)
+    public static Vector3Int Floor(this Vector3 v)
     {
-        return new Vector3(Mathf.Floor(v.x), Mathf.Floor(v.y), 0);
+        return new Vector3Int(Mathf.FloorToInt(v.x), Mathf.FloorToInt(v.y), 0);
     }
 
     public static bool FInRange(this float x, float incBottom, float incTop)
     {
-        return (x >= incBottom && x <= incTop) ;
+        return (x >= incBottom && x <= incTop);
     }
 
     public static bool IInRange(this int x, float incBottom, float incTop)
@@ -363,6 +441,42 @@ public static class Helper
     public static Vector2 V3toV2(this Vector3 v3)
     {
         return new Vector2(v3.x, v3.y);
+    }
+
+    public static Vector3 V2toV3(this Vector2Int v2, float z)
+    {
+        return new Vector3(v2.x, v2.y, z);
+    }
+
+    public static Vector2Int V3toV2Int(this Vector3Int v3)
+    {
+        return new Vector2Int(v3.x, v3.y);
+    }
+
+    public static Vector3 V2toV3(this Vector2 v2, float z)
+    {
+        return new Vector3(v2.x, v2.y, z);
+    }
+
+    public static Vector3 V2IntToV3(this Vector2Int v2)
+    {
+        return new Vector3(v2.x, v2.y, 0);
+    }
+
+    public static Vector2 LerpByDistance(Vector2 A, Vector2 B, float x)
+    {
+        Vector2 P = x * (B - A).normalized + A;
+        return P;
+    }
+
+    public static Vector2 Absolute(this Vector2 vect)
+    {
+        return new Vector2(Mathf.Abs(vect.x), Mathf.Abs(vect.y));
+    }
+
+    public static Vector2Int Floor(this Vector2 vect)
+    {
+        return new Vector2Int(Mathf.FloorToInt(vect.x), Mathf.FloorToInt(vect.y));
     }
 }
 
