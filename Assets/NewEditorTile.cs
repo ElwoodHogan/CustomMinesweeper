@@ -43,22 +43,50 @@ public class NewEditorTile : MonoBehaviour
         StartCoroutine(SpawnWhileInScreen());
     }
 
-    public void ToggleMine()
+    public bool ToggleMine()
     {
         containsMine = !containsMine;
         mine.enabled = containsMine;
         if (containsMine) number.text = "";
         foreach (var tile in NearbyTiles()) tile.nearbyMines += containsMine ? 1 : -1;
+        return true;
     }
-    public void ToggleFlag()
+
+    public bool SetMine(bool mineState)
+    {
+        if(containsMine = mineState) return false;
+        containsMine = mineState;
+        mine.enabled = mineState;
+        return true;
+    }
+    public bool ToggleFlag()
     {
         containsFlag = !containsFlag;
         flag.enabled = containsFlag;
+        return true;
     }
-    public void ToggleCover()
+    public bool SetFlag(bool flagState)
+    {
+        if (containsFlag == flagState) return false;
+        containsFlag = flagState;
+        flag.enabled = flagState;
+        return true;
+    }
+    public bool ToggleCover()
     {
         covered = !covered;
+        revealed = !covered;
         cover.enabled = covered;
+        return true;
+    }
+
+    public bool SetCover(bool coverState)
+    {
+        if (covered == coverState) return false;
+        covered = coverState;
+        revealed = !coverState;
+        cover.enabled = coverState;
+        return true;
     }
 
     IEnumerator SpawnWhileInScreen()

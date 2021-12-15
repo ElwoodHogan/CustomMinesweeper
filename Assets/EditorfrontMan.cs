@@ -34,6 +34,14 @@ public class EditorfrontMan : MonoBehaviour
     [SerializeField] Vector2 attachGridStart;
     [SerializeField] SpriteRenderer attachedGrid;
 
+    [SerializeField] editorTools currentTool;
+
+    [SerializeField] List<PerformedEdit> ActionsToUndo;
+
+    [SerializeField] bool ToggleOrSet = false;
+
+    [SerializeField] bool AddOrClear = false;  //IF TOGGLEORSET IS SET TO SET (lol set to set) THEN HOLDING SHIFT WILL AFFECT WEATHER IT CLEARS OR ADDS 
+
     public bool editing = false;  //Dictates weather the player is in-editor or not
 
     public SpriteRenderer grid;
@@ -101,10 +109,8 @@ public class EditorfrontMan : MonoBehaviour
                 attachedGrid = Instantiate(mineToggleGrid, MWP5050, Quaternion.identity, EditorTileParent);
                 attachGridStart = MWP5050;
             }
-            attachedGrid.transform.position = attachGridStart + ((MWP5050-attachGridStart)/2);
-            attachedGrid.size = Vector2.one + (MWP5050 - attachGridStart).Absolute();
         }
-        else if(attachedGrid)
+        else if (attachedGrid)          //IF LEFT CLICK IS RELEASED, PERFORM THE ATTACHED GRID ACTION OF THE SELECTED TOOL
         {
             Vector2Int gridSize = attachedGrid.size.Floor();
 
@@ -115,36 +121,164 @@ public class EditorfrontMan : MonoBehaviour
                 for (int y = bottomLeft.y; y < bottomLeft.y + gridSize.y; y++)
                     selectedTiles.Add(new Vector2Int(x, y));
 
+            List<Vector2Int> AffectedTiles = new List<Vector2Int>();  //KEEPS A LIST OF TILES THAT ACTUALLY GET AFFTECTED BY THE ACTION.  i.e. TILES WITH MINES WILL NOT BE AFFECTED BY THE SET MINE FUNCTION, AND THIS INFO IS NEEDED FOR UNDO PURPOSES
+
             foreach (Vector2Int tile in selectedTiles)
-                if (NewEditorTile.TilePosits.Contains(tile)) NewEditorTile.NETs[tile].ToggleMine();
+                if (PerformToolAction(tile)) AffectedTiles.Add(tile);
 
             Destroy(attachedGrid);
+
+
+            //AFTER PERFORMING THE ACTION, ADD IT TO THE LIST OF THINGS TO UNDO
+            ActionsToUndo.Add(new PerformedEdit(AffectedTiles));
         }
 
-
-        /*
-        if (Input.GetMouseButtonDown(0))//ON LEFT CLICK
+        if (Input.GetMouseButtonDown(1))  //RIGHT CLICK TO CANCEL
         {
-            if (DeletedTiles.Contains(MWPFloored2))  //IF CLICKING AN ALREADY DELETED TILE, SPAWN A NEW ONE
+            if (attachedGrid)
             {
-                DeletedTiles.Remove(MWPFloored2);
-                SpawnEditorTile(MWPFloored2);
-            } else if (NewEditorTile.TilePosits.Contains(MWPFloored2))  //IF CLICKING A TILE, ADD A MINE TO IT
-            {
-                NewEditorTile.NETs[MWPFloored2].ToggleMine();
+                Destroy(attachedGrid);
             }
-            else//ELSE, THE PLAYER IS CLICKING OUTSIDE THE AREA, MEANING WE NEED TO ENLARGE THE END MAP SIZE, AND ALSO SPAWN A NEW TILE WHERE THEY CLICKED
-            {
-                ValidTiles.Add(MWPFloored2);
-                SpawnEditorTile(MWPFloored2);
-            }
-        }else if (Input.GetMouseButtonDown(1))//ON RIGHT CLICK
-        {
+        }
+        
 
-        }*/
+        if (attachedGrid)//IF THERE IS IN ATTACHED GRID, MAKE INTO A SQUARE BETWEEN THE START POSITION AND THE MOUSE
+        {
+            attachedGrid.transform.position = attachGridStart + ((MWP5050 - attachGridStart) / 2);
+            attachedGrid.size = Vector2.one + (MWP5050 - attachGridStart).Absolute();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Q)){//Q SELECTS THE MINE TOOL
+            currentTool = editorTools.mine;
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {//E SELECTS THE DESTROY TOOL
+            currentTool = editorTools.destroy;
+            attachedGrid.sprite = destroyToggleGrid.sprite;  //testing mid selection change
+        }
+        if (Input.GetKeyDown(KeyCode.R))
+        {//R SELECTS THE CREATE TOOL
+            currentTool = editorTools.create;
+            attachedGrid.sprite = createToggleGrid.sprite;  //testing mid selection change
+        }
+        if (Input.GetKeyDown(KeyCode.F))
+        {//F SELECTS THE REVEAL TOOL
+            currentTool = editorTools.reveal;
+        }
+        if (Input.GetKeyDown(KeyCode.C))
+        {//C SELECTS THE FLAG TOOL
+            currentTool = editorTools.flag;
+        }
+        if (Input.GetKeyDown(KeyCode.Z))
+        {//Z SELECTS UNDO ------- this is gonna be a bitch and a half to impliment
+            currentTool = editorTools.mine;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {//TAB - CHANGES BETWEEN SETTING OR TOGGLING THE CURRENT ACTION -- destroy/create are unaffected and are always considred a set action
+            ToggleOrSet = !ToggleOrSet;
+        }
+
+        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+        {//SHIFT - WHILE HOLDING, CHANGES FROM ADDING A SET TO CLEARING A SET
+            AddOrClear = true;
+        }
+        else AddOrClear = false;
+
     }
 
-    public static void SpawnEditorTile(Vector2Int posit)
+    public bool ToggleMineInTile(Vector2Int vectInt)
+    {
+        if (NewEditorTile.TilePosits.Contains(vectInt)) return NewEditorTile.NETs[vectInt].ToggleMine();
+        return false;
+    }
+
+    public bool SetMineInTile(Vector2Int vectInt, bool AoC)
+    {
+        if (NewEditorTile.TilePosits.Contains(vectInt)) return NewEditorTile.NETs[vectInt].SetMine(AoC);
+        return false;
+    }
+
+    public bool ToggleFlagInTile(Vector2Int vectInt)
+    {
+        if (NewEditorTile.TilePosits.Contains(vectInt)) return NewEditorTile.NETs[vectInt].ToggleFlag();
+        return false;
+
+    }
+
+    public bool SetFlagInTile(Vector2Int vectInt, bool AoC)
+    {
+        if (NewEditorTile.TilePosits.Contains(vectInt)) return NewEditorTile.NETs[vectInt].SetFlag(AoC);
+        return false;
+
+    }
+
+    public bool ToggleCoverInTile(Vector2Int vectInt)
+    {
+        if (NewEditorTile.TilePosits.Contains(vectInt)) return NewEditorTile.NETs[vectInt].ToggleCover();
+        return false;
+
+    }
+
+    public bool SetCoverInTile(Vector2Int vectInt, bool AoC)
+    {
+        if (NewEditorTile.TilePosits.Contains(vectInt)) return NewEditorTile.NETs[vectInt].SetCover(AoC);
+        return false;
+
+    }
+
+    public bool CreateTile(Vector2Int vectInt)  //DIFFERENT FROM JUST SPAWNING, THIS FUNCTION ALONE HAS THE POWER TO OVERWRITE THE DELETEDTILE LIST
+    {
+        if (!NewEditorTile.TilePosits.Contains(vectInt))
+        {
+            DeletedTiles.Remove(vectInt);
+            SpawnEditorTile(vectInt);
+            return true;
+        }
+        return false;
+    }
+    public bool DeleteTile(Vector2Int vectInt)
+    {
+        if (NewEditorTile.TilePosits.Contains(vectInt))
+        {
+            DeletedTiles.Add(vectInt);
+            Destroy(NewEditorTile.NETs[vectInt]);
+            NewEditorTile.TilePosits.Remove(vectInt);
+            NewEditorTile.NETs.Remove(vectInt);
+            return true;
+        }
+        return false;
+    }
+
+    bool PerformToolAction(Vector2Int vInt)
+    {
+        switch (currentTool)
+        {
+            case editorTools.mine:
+                if(ToggleOrSet) return ToggleMineInTile(vInt);
+                return SetMineInTile(vInt, AddOrClear);
+                break;
+            case editorTools.flag:
+                if (ToggleOrSet) return ToggleFlagInTile(vInt);
+                return SetFlagInTile(vInt, AddOrClear);
+                break;
+            case editorTools.reveal:
+                if (ToggleOrSet) return ToggleCoverInTile(vInt);
+                return SetCoverInTile(vInt, AddOrClear);
+                break;
+            case editorTools.create:
+                return CreateTile(vInt);
+                break;
+            case editorTools.destroy:
+                return DeleteTile(vInt);
+                break;
+        }
+        print("selection performance error");
+        return false;
+    }
+
+        public static void SpawnEditorTile(Vector2Int posit)
     {
         if (EFM.ValidTiles.Contains(posit) && !EFM.DeletedTiles.Contains(posit) && NewEditorTile.TilePosits.Add(posit))
             //IF THE POSITION IS VALID, AND ITS NOT A SPOT INTENTIONALLY DELETED, AND THERE IS NOT ALREADY A TILE THERE, SPAWN A TILE
@@ -152,6 +286,50 @@ public class EditorfrontMan : MonoBehaviour
             NewEditorTile.TilePosits.Add(posit);
             NewEditorTile net = Instantiate(EFM.NET, posit.V2IntToV3(), Quaternion.identity, EFM.EditorTileParent);
             NewEditorTile.NETs.Add(posit, net);
+        }
+    }
+    
+
+    public enum editorTools
+    {
+        mine,
+        flag,
+        reveal,
+        create,
+        destroy,
+    }
+
+    class PerformedEdit
+    {
+        public editorTools usedTool;
+        List<Vector2Int> affectedTiles;
+        bool ToggledOrSet;
+        bool AddedOrCleared;
+        Action InverseOperation;
+
+        public Vector2Int bottomLeftCoord;
+        public Vector2Int sizeOfArea;
+
+        public PerformedEdit(List<Vector2Int> AffectedTiles)
+        {
+            usedTool = EFM.currentTool;
+            ToggledOrSet = EFM.ToggleOrSet;
+            AddedOrCleared = EFM.AddOrClear;
+            switch (usedTool)
+            {
+                case editorTools.mine:
+                    if (ToggledOrSet) InverseOperation = () => { foreach (Vector2Int tile in affectedTiles) EFM.ToggleMineInTile(tile); };
+                    break;
+                case editorTools.flag:
+                    break;
+                case editorTools.reveal:
+                    break;
+                case editorTools.create:
+                    break;
+                case editorTools.destroy:
+                    break;
+            }
+            affectedTiles = AffectedTiles;
         }
     }
 }
