@@ -24,7 +24,7 @@ public class EditorTile : MonoBehaviour
             Mine.enabled = value;
             Number.enabled = !value;
             _ContainsMine = value;
-            InEditorMenuAI.IEM.mines += value ? 1 : -1;
+            //InEditorMenuAI.IEM.mines += value ? 1 : -1;
             foreach (var tile in NearbyTiles)
             {
                 if (value) tile.IncrimentMines();

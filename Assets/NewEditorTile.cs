@@ -32,21 +32,46 @@ public class NewEditorTile : MonoBehaviour
         {
             nMines = value;
             number.text = nMines > 0 ? nMines + "" : "";
-            number.color = FrontMan.FM.NumberColors[nMines];
+            if(nMines > 9)
+            {
+                print($"nearby mines more than 9 at {pos.x}, {pos.y}");
+                number.color = FrontMan.FM.NumberColors[9];
+            }
+            else number.color = FrontMan.FM.NumberColors[nMines];
+
         }
     }
 
     [SerializeField] TextMeshPro number;
+
     private void Start()
     {
         name = $"OST x:{pos.x} y:{pos.y}";  //COMMENT OUT POST-FINAL
         StartCoroutine(SpawnWhileInScreen());
     }
 
+    public void Init(bool setMine, bool setFlag, bool setCover, int setNearbyMine)
+    {
+        SetMine(setMine);
+        SetFlag(setFlag);
+        SetCover(setCover);
+        //nearbyMines = setNearbyMine;
+        StartCoroutine(CheckForMines());
+    }
+
+    IEnumerator CheckForMines()
+    {
+        yield return 0;
+        int nearmines = 0;
+        foreach (var tile in NearbyTiles()) if (tile.containsMine) nearmines++;
+        nearbyMines = nearmines;
+    }
+
     public bool ToggleMine()
     {
         containsMine = !containsMine;
         mine.enabled = containsMine;
+        EFM.mines += containsMine ? 1 : -1;
         if (containsMine) number.text = "";
         foreach (var tile in NearbyTiles()) tile.nearbyMines += containsMine ? 1 : -1;
         return true;
@@ -54,9 +79,11 @@ public class NewEditorTile : MonoBehaviour
 
     public bool SetMine(bool mineState)
     {
-        if(containsMine = mineState) return false;
+        if(containsMine == mineState) return false;
         containsMine = mineState;
         mine.enabled = mineState;
+        EFM.mines += containsMine ? 1 : -1;
+        foreach (var tile in NearbyTiles()) tile.nearbyMines += containsMine ? 1 : -1;
         return true;
     }
     public bool ToggleFlag()
@@ -96,29 +123,37 @@ public class NewEditorTile : MonoBehaviour
 
         for (int x = pos.x - 1; x <= pos.x + 1; x++)
             for (int y = pos.y - 1; y <= pos.y + 1; y++)
-                SpawnEditorTile(new Vector2Int(x, y));
+                EFM.SpawnEditorTile(new Vector2Int(x, y));
     }
-    /*
-    public void SpawnNewTile(Vector2Int posit)
-    {
-        if (TilePosits.Add(posit))
-        {
-            NewEditorTile ndt = Instantiate(this, posit.V2IntToV3(), Quaternion.identity, EFM.TileParent);
-            NETs.Add(posit, ndt);
-        }
-    }
-
-    public static void SpawnNewTile(Vector2Int posit, NewEditorTile net)
-    {
-        if (TilePosits.Add(posit))
-        {
-            NewEditorTile ndt = Instantiate(net, posit.V2IntToV3(), Quaternion.identity, EFM.TileParent);
-            NETs.Add(posit, ndt);
-        }
-    }*/
+    
 
     public List<NewEditorTile> NearbyTiles()
     {
         return NETs.Where(pair => Vector2Int.Distance(pair.Key, pos2) < 2).Select(kvp => kvp.Value).ToList();
+    }
+
+    private void OnDestroy()
+    {
+        if(containsMine) foreach (var tile in NearbyTiles()) tile.nearbyMines--;
+    }
+
+    public basicTileData GetBasicData()
+    {
+        return new basicTileData(containsMine, containsFlag, covered, nearbyMines);
+    }
+
+    public class basicTileData
+    {
+        public bool hasMine;
+        public bool hasFlag;
+        public bool hasCover;
+        public int nearbyMines;
+        public basicTileData(bool setMine, bool setFlag, bool setCover, int setNearbyMine)
+        {
+            hasMine = setMine;
+            hasFlag = setFlag;
+            hasCover = setCover;
+            nearbyMines = setNearbyMine;
+        }
     }
 }

@@ -15,7 +15,7 @@ public class CreateLevelAI : MonoBehaviour
     [SerializeField] InputField Mines;
     [SerializeField] int height = 9;
     [SerializeField] int width = 9;
-    [SerializeField] int mines = 15;
+    [SerializeField] int mines = 0;
     [SerializeField] TextMeshProUGUI Warning;
     [SerializeField] TextMeshProUGUI ReccomendedMines;
     public static CreateLevelAI CL;
@@ -52,7 +52,7 @@ public class CreateLevelAI : MonoBehaviour
                 }
             }
         });
-        Mines.onValueChanged.AddListener((s) => { if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; else { int.TryParse(s, out mines); Warning.text = ""; } });
+        //Mines.onValueChanged.AddListener((s) => { if (!isNumeric(s)) Warning.text = "Only whole numbers in the input field pls."; else { int.TryParse(s, out mines); Warning.text = ""; } });
     }
 
     public void SetBoard()
@@ -79,7 +79,7 @@ public class CreateLevelAI : MonoBehaviour
             return;
         }
         EFM.SetBoard(height, width, mines);
-        MainMenuAI.MM.PutAway();
+        MainMenuAI.MM.PutAway(true);
     }
 
 
