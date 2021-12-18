@@ -77,9 +77,14 @@ public class NewTile : SerializedMonoBehaviour
         List<Vector2Int> nearbyUnrevealed = squareAround.Where(v => !TilePosits.Contains(v)).ToList();
         List<Vector2Int> nearbyUnrevealedUnflagged = nearbyUnrevealed.Where(v => !FM.flags.Contains(v)).ToList();
         int nearbyFlagged = nearbyUnrevealed.Count - nearbyUnrevealedUnflagged.Count;
-        if (nearbyFlagged == FM.mineLocations.Where(v => Vector2.Distance(v, pos) < 2).Count())
+        //if (nearbyFlagged == FM.mineLocations.Where(v => Vector2.Distance(v, pos) < 2).Count())
+        if(nearbyFlagged == nearbyMines)
         {
-            foreach (var vector2 in nearbyUnrevealedUnflagged) SpawnNewTile(vector2);
+            foreach (var vector2 in nearbyUnrevealedUnflagged)
+            {
+                if (!FM.mineLocations.Contains(vector2)) SpawnNewTile(vector2);
+                else FM.SpawnMine(vector2);
+            }
         }
     }
 
@@ -96,7 +101,7 @@ public class NewTile : SerializedMonoBehaviour
         List<Vector2Int> nearbyUnrevealed = squareAround.Where(v => !TilePosits.Contains(v)).ToList();
         List<Vector2Int> nearbyUnrevealedUnflagged = nearbyUnrevealed.Where(v => !FM.flags.Contains(v)).ToList();
         int nearbyFlagged = nearbyUnrevealed.Count - nearbyUnrevealedUnflagged.Count;
-        if (nearbyUnrevealed.Count == FM.mineLocations.Where(v => Vector2.Distance(v, pos) < 2).Count())
+        if (nearbyUnrevealed.Count == nearbyMines)
         {
             foreach (var vector2 in nearbyUnrevealedUnflagged)
             {

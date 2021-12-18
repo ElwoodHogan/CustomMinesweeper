@@ -113,7 +113,7 @@ public class EditorfrontMan : MonoBehaviour
         Vector2Int MWP2 = MWPFloored.V3toV2Int();
         Vector2 MWP5050 = new Vector2(MWPFloored.x+.5f, MWPFloored.y + .5f);
 
-        if (!editing || EventSystem.current.IsPointerOverGameObject()) return;
+        if (!editing || EventSystem.current.IsPointerOverGameObject() || FM.playing) return;
 
         //TODO: HAVE THE ATTACHED GRID BE ASSIGNED AN ACTION, I.E. TOGGLE MINE, TOGGLE FLAG, AND HAVE IT BE ABLE TO SET RATHER THAN JUST TOGGLE
         //MAYBE USE AN ACTION MAN IDK

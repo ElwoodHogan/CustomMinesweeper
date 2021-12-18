@@ -15,6 +15,9 @@ public class InEditorMenuAI : MonoBehaviour
     [SerializeField] Text Width;
     [SerializeField] Text Mines;
     [SerializeField] Text ExitText;
+    [SerializeField] Text TogglemodeText;
+    [SerializeField] GameObject ShiftmodeDisplayer;
+    [SerializeField] Text ShiftmodeToggleText;
 
     [SerializeField] Image MineToolSelect;
     [SerializeField] Image FlagToolSelect;
@@ -22,6 +25,13 @@ public class InEditorMenuAI : MonoBehaviour
     [SerializeField] Image CreateToolSelect;
     [SerializeField] Image DestroyToolSelect;
     [SerializeField] Color SelectColor;
+
+    [SerializeField] GameObject ToolMenu;
+
+    [SerializeField] Transform controlsMenu;
+    [SerializeField] Transform beginPoint;
+    [SerializeField] Transform endPoint;
+    bool controlsMenuUp = false;
     Color defaultColor;
     editorTools lastFrameSelectedTool;
     public static InEditorMenuAI IEM;
@@ -36,7 +46,22 @@ public class InEditorMenuAI : MonoBehaviour
         Height.text = EFM.height + "";
         Width.text = EFM.width + "";
         Mines.text = EFM.mines + "";
+        TogglemodeText.text = EFM.ToggleOrSet ? "Toggle" : "Set";
+        if (!EFM.ToggleOrSet)
+        {
+            ShiftmodeDisplayer.SetActive(true);
+            ShiftmodeToggleText.text = EFM.AddOrClear ? "Add" : "Clear";
+        }else ShiftmodeDisplayer.SetActive(false);
 
+
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            toggleControlsMenus();
+        }
+
+
+
+        if (!ToolMenu.activeSelf) return;
         switch (lastFrameSelectedTool)
         {
             case editorTools.mine:
@@ -75,5 +100,26 @@ public class InEditorMenuAI : MonoBehaviour
                 break;
         }
         lastFrameSelectedTool = EFM.currentTool;
+    }
+
+
+    public void toggleToolMenu()
+    {
+        ToolMenu.SetActive(!ToolMenu.activeSelf);
+    }
+
+    public void toggleControlsMenus()
+    {
+        if (!controlsMenuUp)
+        {
+            controlsMenu.transform.DOMove(transform.position, .5f);
+            controlsMenuUp = true;
+        }
+        else
+        {
+            controlsMenu.transform.DOMove(endPoint.position, .5f).OnComplete(() => controlsMenu.position = beginPoint.position);
+            controlsMenuUp = false;
+        }
+            
     }
 }

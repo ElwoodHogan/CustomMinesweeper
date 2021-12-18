@@ -9,7 +9,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using static FrontMan;
 
-public class FrontMan : MonoBehaviour
+public class FrontMan : SerializedMonoBehaviour
 {
     public int height;
     public int width;
@@ -103,6 +103,7 @@ public class FrontMan : MonoBehaviour
 
         InGameMenuAI.IGM.Init(height, width, mines);
         playing = true;
+        StartCoroutine(GenerateMines());
     }
 
     private void Update()
@@ -148,10 +149,45 @@ public class FrontMan : MonoBehaviour
             || !mouseWorldPos.x.FInRange(0, width)
             || !mouseWorldPos.y.FInRange(0, height)) return;
 
-        
 
-        if (TilesRevealed > 0
-            && Input.GetMouseButtonDown(0))             //LEFT CLICK POST-INITAL REVEAL
+        if (TilesRevealed == 0 && Input.GetMouseButtonDown(0) && !loadingMines && NewGameMenuAI.NGM.SafetyMode.isOn)  //INITIAL CLICK: MOVE SAFETY SQUARE TO WHERE CLICKED
+        {
+            List<Vector2Int> x3Sqauare = new List<Vector2Int>();  //GETS THE EMPTY SQUARE IN THE BOTTOM LEFT COR
+            for (int x = 0; x <= 2; x++)
+                for (int y = 0; y <= 2; y++)
+                    x3Sqauare.Add(new Vector2Int(x, y));
+
+            List<Vector2Int> x3SqauareAroundMouse = new List<Vector2Int>();     //GETS THE 3X3 SQUARE AROUND WHERE THE PLAYER CLICKED
+            for (int x = MWPFloored2.x - 1; x <= MWPFloored2.x + 1; x++)
+                for (int y = MWPFloored2.y - 1; y <= MWPFloored2.y + 1; y++)
+                    x3SqauareAroundMouse.Add(new Vector2Int(x, y));
+
+            foreach (var vect in x3SqauareAroundMouse)       //MOVE THE MINES INT HE 3X3 WHERE THE PLAYER CLICKED TO AN EMPTY SPOT IN THE BOTTOM LEFT CORNER
+                if (mineLocations.Contains(vect))
+                {
+                    mineLocations.Remove(vect);
+                    Vector2Int newLoc = x3Sqauare.RandomPicker();
+                    mineLocations.Add(newLoc);
+                    x3Sqauare.Remove(newLoc);
+                }
+
+
+            //THEN SPAWN A TILE
+            if (flags.Contains(MWPFloored2)) return;  //If theres a flag, ignore the reveal
+
+            if (mineLocations.Contains(MWPFloored2))
+            {
+                SpawnMine(MWPFloored2);
+            }
+            else
+            {
+                SpawnTile(MWPFloored2);
+            }
+        }
+
+
+
+        if (TilesRevealed > 0 && Input.GetMouseButtonDown(0))             //LEFT CLICK
         {
             if (flags.Contains(MWPFloored2)) return;  //If theres a flag, ignore the reveal
 
@@ -171,7 +207,7 @@ public class FrontMan : MonoBehaviour
 
         }
 
-        if (TilesRevealed > 0 && Input.GetMouseButtonDown(1))  //RIGHT CLICK POST-INITIAL REVEAL
+        if (Input.GetMouseButtonDown(1))  //RIGHT CLICK
         {
 
             if (flags.Contains(MWPFloored2))    //If the player is right clicking a flag, remove it
@@ -193,8 +229,7 @@ public class FrontMan : MonoBehaviour
         }
 
 
-
-        StartCoroutine(InitialClick(MWPFloored2));
+        
 
         if ((TotalTiles - mines) == TilesRevealed && TotalFlagged == mines && playing)
         {
@@ -204,36 +239,35 @@ public class FrontMan : MonoBehaviour
         }
     }
 
-    IEnumerator InitialClick(Vector2Int MWPFloored2)
+    IEnumerator GenerateMines()  //GENERATES A RANDOM MINE ASSORTMENT.  IF SAFETY MODE IS ON, WILL CREATE A 3X3 SAFETY HOLE IN THE MIDDLE TO BE MOVED TO ONCE THE FIRST CLICK HAS OCCURED
     {
-        if (TilesRevealed == 0 && Input.GetMouseButtonDown(0) && !loadingMines)  //INITIAL CLICK: GENERATES MINE LOCATIONS
-        {
+        
             System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
             stopwatch.Reset(); stopwatch.Start();
             loadingMines = true;
             LoadBar.gameObject.SetActive(true);
             mineLocations = new HashSet<Vector2Int>();
-
+            HashSet<Vector2Int> shiftedMineLocations = new HashSet<Vector2Int>();
             float loaded = 0;
             float segment = 1;
-            HashSet<Vector2Int> squareAroundFirstClick = new HashSet<Vector2Int>();
-            for (int x = MWPFloored2.x - 1; x <= MWPFloored2.x + 1; x++)
-                for (int y = MWPFloored2.y - 1; y <= MWPFloored2.y + 1; y++)
-                    squareAroundFirstClick.Add(new Vector2Int(x, y));
+            HashSet<Vector2Int> x3Sqauare = new HashSet<Vector2Int>();
+            for (int x = 0; x <= 2; x++)
+                for (int y = 0; y <= 2; y++)
+                x3Sqauare.Add(new Vector2Int(x, y));
             yield return 0;
-            if (mines <= (TotalTiles * .995) + 1)  //HASHSET METHOD IS SLOWER FOR EXTREMELY SATURATED MAPS
+            if (mines <= (TotalTiles * .995) + 1)  //HASHSET METHOD IS SLOWER FOR EXTREMELY SATURATED MAPS, SO SWITCH TO THE LIST METHOD IF TRUE
             {
                 print("hashset method");
                 yield return 0;
                 Vector2Int gridSize = new Vector2Int(width, height);
-                if (NewGameMenuAI.NGM.SafetyMode.isOn)
+                if (NewGameMenuAI.NGM.SafetyMode.isOn)  //THIS METHOD CHECKS FOR THE X3SQUARE BEFORE PLACING A MINE
                 {
                     while (mineLocations.Count < mines)
                     {
                         Vector2Int vec = new Vector2Int(UnityEngine.Random.Range(1, gridSize.x), UnityEngine.Random.Range(1, gridSize.y));
-                        if (!squareAroundFirstClick.Contains(vec)) mineLocations.Add(vec);
+                        if (!x3Sqauare.Contains(vec)) mineLocations.Add(vec);
 
-                        if ((((mineLocations.Count) / mines) * 100) > loaded)
+                        if ((((mineLocations.Count) / mines) * 100) > loaded)  //ATTEMPT AT A LOADBAR SYSTEM.  DOESNT WORK AND IDK WHY.  FIX LATER
                         {
                             loaded += segment;
                             LoadBar.fillAmount = (mines - mineLocations.Count) / mines;
@@ -241,8 +275,8 @@ public class FrontMan : MonoBehaviour
                         }
                     }
                 }
-                else
-                {
+                else        //THIS METHOD DOES NOT CHECK FOR THE X3SQUARE BEFORE PLACING A MINE
+            {
                     while (mineLocations.Count < mines)
                     {
                         mineLocations.Add(new Vector2Int(UnityEngine.Random.Range(1, gridSize.x), UnityEngine.Random.Range(1, gridSize.y)));
@@ -255,7 +289,7 @@ public class FrontMan : MonoBehaviour
                     }
                 }
             }
-            else
+            else                                      //LIST METHOD
             {
                 yield return null;
                 List<Vector2Int> possibleLocations = new List<Vector2Int>();
@@ -266,7 +300,7 @@ public class FrontMan : MonoBehaviour
                         possibleLocations.Add(new Vector2Int(x, y));
                     }
                 }
-                if (NewGameMenuAI.NGM.SafetyMode.isOn) foreach (Vector2Int vector in squareAroundFirstClick) possibleLocations.Remove(vector);
+                if (NewGameMenuAI.NGM.SafetyMode.isOn) foreach (Vector2Int vector in x3Sqauare) possibleLocations.Remove(vector);
                 while (mineLocations.Count < mines)
                 {
                     Vector2Int vect = possibleLocations.RandomPicker();
@@ -283,22 +317,12 @@ public class FrontMan : MonoBehaviour
             print(mines);
             print(mineLocations.Count);
             LoadBar.gameObject.SetActive(false);
-
-
-            if (mineLocations.Contains(MWPFloored2))
-            {
-                SpawnMine(MWPFloored2);
-            }
-            else
-            {
-                SpawnTile(MWPFloored2);
-            }
             InGameMenuAI.IGM.StartTimer();
             loadingMines = false;
             print("Loading time: " + stopwatch.Elapsed);
             stopwatch.Stop();
 
-        }
+        
         yield return 0;
     }
     public void DeActivateBoard(int recursion)
@@ -357,7 +381,7 @@ public class FrontMan : MonoBehaviour
         TotalFlagged++;
     }
 
-    void SpawnMine(Vector2Int pos)
+    public void SpawnMine(Vector2Int pos)
     {
         Instantiate(mine, pos.V2IntToV3(), Quaternion.identity, TileParent);
         extraLives--;
@@ -411,6 +435,10 @@ public static class Helper
     public static Vector2 Change(this Vector2Int pos, float x, float y)
     {
         return pos + new Vector2(x, y);
+    }
+    public static Vector2Int IntChange(this Vector2Int pos, int x, int y)
+    {
+        return pos + new Vector2Int(x, y);
     }
 
     public static T RandomPicker<T>(this List<T> list)
@@ -477,6 +505,16 @@ public static class Helper
     public static Vector2Int Floor(this Vector2 vect)
     {
         return new Vector2Int(Mathf.FloorToInt(vect.x), Mathf.FloorToInt(vect.y));
+    }
+
+    public static Vector2Int Wrap(this Vector2Int input, int rightwardMovement, int upwardMovement, int widthLimit, int heightLimit)
+    {
+        Vector2Int v = input.IntChange(rightwardMovement, upwardMovement);
+        if (v.x < 0) v.x = widthLimit + v.x;
+        if (v.x > widthLimit) v.x = v.x - widthLimit;
+        if (v.y < 0) v.x = heightLimit + v.y;
+        if (v.x > heightLimit) v.x = v.x - heightLimit;
+        return v;
     }
 }
 
