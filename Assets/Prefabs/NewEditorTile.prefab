@@ -93,8 +93,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6330437615908014786}
-  - component: {fileID: 6330437615908014789}
   - component: {fileID: 6330437615908014791}
+  - component: {fileID: 6684231548428409326}
   m_Layer: 0
   m_Name: NewEditorTile
   m_TagString: Untagged
@@ -121,28 +121,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6330437615908014789
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6330437615908014790}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bafc1a6f14419fe4fb8db4c13a15e316, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  tile: {fileID: 6330437615908014791}
-  mine: {fileID: 6330437615268782157}
-  flag: {fileID: 6330437616845408868}
-  cover: {fileID: 6330437616358172297}
-  containsMine: 0
-  containsFlag: 0
-  covered: 1
-  revealed: 0
-  nMines: 0
-  number: {fileID: 7255655107401993170}
 --- !u!212 &6330437615908014791
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -195,6 +173,28 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &6684231548428409326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6330437615908014790}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bafc1a6f14419fe4fb8db4c13a15e316, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tile: {fileID: 6330437615908014791}
+  mine: {fileID: 6330437615268782157}
+  flag: {fileID: 6330437616845408868}
+  cover: {fileID: 6330437616358172297}
+  containsMine: 0
+  containsFlag: 0
+  covered: 1
+  revealed: 0
+  nMines: 0
+  number: {fileID: 7255655107401993170}
 --- !u!1 &6330437616358172299
 GameObject:
   m_ObjectHideFlags: 0
