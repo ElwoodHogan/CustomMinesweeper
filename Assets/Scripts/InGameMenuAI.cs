@@ -21,6 +21,7 @@ public class InGameMenuAI : MonoBehaviour
     [SerializeField] Transform jukeboxMenu;
     [SerializeField] Transform settingsEndpoint;
     [SerializeField] Transform jukeboxEndpoint;
+    public Text Title;
     private void Awake()
     {
         IGM = this;
@@ -32,7 +33,7 @@ public class InGameMenuAI : MonoBehaviour
         if (timeStart != 0) TimerText.text = Mathf.Round(Time.time - timeStart) + "";
         if (FM.playing) Mines.text = startMines - FM.TotalFlagged + "";
 
-        if (Input.GetKeyDown(KeyCode.Escape)) ToggleSettings();
+        if (Input.GetKeyDown(KeyCode.F)) ToggleSettings();
         ExtraLivesCounter.text = FM.extraLives + "";
     }
 
@@ -125,6 +126,8 @@ public class InGameMenuAI : MonoBehaviour
             FlaggedAll = false;
         }
     }
+
+
 
 
 }

@@ -16,6 +16,7 @@ public class NewGameMenuAI : MonoBehaviour
     [SerializeField] int extraLives = 0;
     [SerializeField] TextMeshProUGUI Warning;
     [SerializeField] TextMeshProUGUI ReccomendedMines;
+    [SerializeField] Dropdown selectionDropdown;
 
     public static NewGameMenuAI NGM;
     private void Awake()
@@ -39,9 +40,10 @@ public class NewGameMenuAI : MonoBehaviour
                 if (mines > (width * height * .995) + 1)
                 {
                     Warning.text = saturationWarning + Mathf.Floor((float)(width * height * .995) + 1) + " mines";
-                }else if(width * height >= (2500*2500))
+                }
+                else if (width * height >= (5000 * 5000))
                 {
-                    Warning.text = "Look, one of the things I wanted to do with this game was allow as big a board size as you wanted.  But computers have limitations, and a board size that big will cause general gameplay lag.  So consider this a warning.";
+                    Warning.text = "Look, one of the things I wanted to do with this game was allow as big a board size as you wanted.  But computers have limitations, and a board size that big will probably take a few minutes to generate.  So consider this a warning.";
                 }
             }
         });
@@ -60,9 +62,9 @@ public class NewGameMenuAI : MonoBehaviour
             {
                 Warning.text = saturationWarning + Mathf.Floor((float)(width * height * .995) + 1) + " mines";
             }
-            else if (width * height >= (2500 * 2500))
+            else if (width * height >= (5000 * 5000))
             {
-                Warning.text = "Look, one of the things I wanted to do with this game was allow as big a board size as you wanted.  But computers have limitations, and a board size that big will cause general gameplay lag.  So consider this a warning.";
+                Warning.text = "Look, one of the things I wanted to do with this game was allow as big a board size as you wanted.  But computers have limitations, and a board size that big will probably take a few minutes to generate.  So consider this a warning.";
                 }
         });
         Mines.onValueChanged.AddListener((s) =>
@@ -128,6 +130,16 @@ public class NewGameMenuAI : MonoBehaviour
         FM.extraLives = extraLives;
         MainMenuAI.MM.PutAway();
         InGameMenuAI.IGM.resetTimer();
+
+        print($"{width} {height} {mines}");
+        InGameMenuAI.IGM.Title.text = "Difficulty: Custom";
+        if (height == 9 && width == 9 && mines == 12) InGameMenuAI.IGM.Title.text = "Difficulty: Easy";
+                if (height == 16 && width == 16 && mines == 40) InGameMenuAI.IGM.Title.text = "Difficulty: Medium";
+                if (height == 16 && width == 30 && mines == 99) InGameMenuAI.IGM.Title.text = "Difficulty: Hard";
+                if (height == 100 && width == 100 && mines == 3400) InGameMenuAI.IGM.Title.text = "Difficulty: Impossible";
+                if (height == 1 && width == 1 && mines == 1) InGameMenuAI.IGM.Title.text = "Difficulty: Impossible (Literally)";
+                
+        
     }
 
     public bool isNumeric(string s)

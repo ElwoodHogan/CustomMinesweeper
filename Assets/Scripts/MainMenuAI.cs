@@ -39,8 +39,8 @@ public class MainMenuAI : MonoBehaviour
         ButtonMenu.DOMove(ButtonMenuLeavePoint.position, 1);
         transform.DOMove(MainMenuLeavePoint.position, 1);
         SelectedMenu.DOMove(leavePoint.position, 1);
-        if (!editor) InGameMenuAI.IGM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, 1080, 0), 1);
-        else InEditorMenuAI.IEM.transform.DOMove(InEditorMenuAI.IEM.transform.position.Change(0, 1080, 0), 1);
+        if (!editor) InGameMenuAI.IGM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, Screen.height, 0), 1);
+        else InEditorMenuAI.IEM.transform.DOMove(InEditorMenuAI.IEM.transform.position.Change(0, Screen.height, 0), 1);
     }
     public void PutBack()
     {
@@ -48,7 +48,7 @@ public class MainMenuAI : MonoBehaviour
         transform.DOMove(MMOGPoint, 1);
         SelectedMenu.DOMove(SMOGPoint, 1);
         SettingsMenu.DOMove(leavePoint.position, 1);
-        InGameMenuAI.IGM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, -1080, 0), 1);
-        InEditorMenuAI.IEM.transform.DOMove(InEditorMenuAI.IEM.transform.position.Change(0, -1080, 0), 1);
+        InGameMenuAI.IGM.transform.DOMove(InGameMenuAI.IGM.transform.position.Change(0, -Screen.height, 0), 1);
+        InEditorMenuAI.IEM.transform.DOMove(InEditorMenuAI.IEM.transform.position.Change(0, -Screen.height, 0), 1);
     }
 }

@@ -51,6 +51,8 @@ public class FrontMan : SerializedMonoBehaviour
     [SerializeField] AudioSource WinSound;
 
     [SerializeField] GameObject confetti;
+
+    [SerializeField] List<Vector2Int> sortedminelist;
     private void Awake()
     {
         FM = this;
@@ -122,12 +124,15 @@ public class FrontMan : SerializedMonoBehaviour
         Vector3Int MWPFloored = mouseWorldPos.Floor();
         Vector2Int MWPFloored2 = MWPFloored.V3toV2Int();
 
-
-        if (Input.GetKeyDown(KeyCode.Q) && TilesRevealed > 0 && playing)
+        //to un-optimized.  might optimize later
+        /*
+        if (Input.GetKeyDown(KeyCode.Q) && TilesRevealed > 0 && playing && height*width <= (300*300))
         {
             Vector3 loc = NewTile.TilePosits.Where(
                 v => flags.Where(
-                    f => Vector2.Distance(v, f) < 2).Count()
+                    f => Vector2.Distance(v, f) < 2
+                    
+                    ).Count()
                     != mineLocations.Where(l => Vector2.Distance(v, l) < 2).Count()
                     && !borderTiles.Contains(v)).
                     OrderBy(
@@ -136,7 +141,7 @@ public class FrontMan : SerializedMonoBehaviour
                                 Change(.5f, .5f, 0);
             Camera.main.transform.DOMove(loc, 1);
         }
-        if (Input.GetKeyDown(KeyCode.E) && TilesRevealed > 0 && playing)
+        if (Input.GetKeyDown(KeyCode.E) && TilesRevealed > 0 && playing && height * width < (300 * 300))
         {
             Vector3 loc = NewTile.TilePosits.Where(
                 v => flags.Where(
@@ -146,12 +151,14 @@ public class FrontMan : SerializedMonoBehaviour
                         RandomPicker().V2toV3(-10).
                             Change(.5f, .5f, 0);
             Camera.main.transform.DOMove(loc, 1);
-        }
+        }*/
 
         if (Input.GetKeyDown(KeyCode.G)) grid.enabled = !grid.enabled;
 
+        if (Input.GetKeyDown(KeyCode.R)) Camera.main.transform.DOMove(new Vector3(width/2, height/2, Camera.main.transform.position.z), .2f);
 
-        if (!playing
+
+            if (!playing
             || loadingMines
             || EventSystem.current.IsPointerOverGameObject()
             || !Application.isFocused
@@ -163,27 +170,29 @@ public class FrontMan : SerializedMonoBehaviour
         {
             if (NewGameMenuAI.NGM.SafetyMode.isOn)//IF SAFETY MODE IS ON, MOVE SAFETY SQUARE TO WHERE CLICKED
             {
-                List<Vector2Int> x3Sqauare = new List<Vector2Int>();  //GETS THE EMPTY SQUARE IN THE BOTTOM LEFT CORNER
-                for (int x = 0; x <= 2; x++)
-                    for (int y = 0; y <= 2; y++)
-                        x3Sqauare.Add(new Vector2Int(x, y));
+                if (MWPFloored2!= new Vector2Int(1,1)) //If the player clicked at 1,1, then the square is already empty
+                {
+                    List<Vector2Int> bottomLeftSqauare = new List<Vector2Int>();  //GETS THE EMPTY SQUARE IN THE BOTTOM LEFT CORNER
+                    for (int x = 0; x <= 2; x++)
+                        for (int y = 0; y <= 2; y++)
+                            bottomLeftSqauare.Add(new Vector2Int(x, y));
 
-                List<Vector2Int> x3SqauareAroundMouse = new List<Vector2Int>();     //GETS THE 3X3 SQUARE AROUND WHERE THE PLAYER CLICKED
-                for (int x = MWPFloored2.x - 1; x <= MWPFloored2.x + 1; x++)
-                    for (int y = MWPFloored2.y - 1; y <= MWPFloored2.y + 1; y++)
-                        x3SqauareAroundMouse.Add(new Vector2Int(x, y));
-                foreach (var vect in x3SqauareAroundMouse)       //MOVE THE MINES IN THE 3X3 WHERE THE PLAYER CLICKED TO AN EMPTY SPOT RANDOMLY ON THE BOARD
-                    if (mineLocations.Contains(vect))
-                    {
-                        mineLocations.Remove(vect);
-                        //picks a new location at random
-                        Vector2Int newLoc = new Vector2Int(UnityEngine.Random.Range(1, width), UnityEngine.Random.Range(1, height));
-                        //while the minelocations already containts the newlocation, get another new location
-                        while (mineLocations.Contains(newLoc) || x3SqauareAroundMouse.Contains(newLoc))
-                            newLoc = new Vector2Int(UnityEngine.Random.Range(1, width), UnityEngine.Random.Range(1, height));
-                        mineLocations.Add(newLoc);
-                        x3Sqauare.Remove(newLoc);
-                    }
+                    List<Vector2Int> x3SqauareAroundMouse = new List<Vector2Int>();     //GETS THE 3X3 SQUARE AROUND WHERE THE PLAYER CLICKED
+                    for (int x = MWPFloored2.x - 1; x <= MWPFloored2.x + 1; x++)
+                        for (int y = MWPFloored2.y - 1; y <= MWPFloored2.y + 1; y++)
+                            x3SqauareAroundMouse.Add(new Vector2Int(x, y));
+
+                    foreach (var vect in x3SqauareAroundMouse)       //MOVE THE MINES IN THE 3X3 WHERE THE PLAYER CLICKED TO THE BOTTOM LEFT CORNER
+                        if (mineLocations.Contains(vect))
+                        {
+                            mineLocations.Remove(vect);
+                            //picks a new location in the bottom left square which is now within the 3x3 the player clicked
+                            Vector2Int newLoc = bottomLeftSqauare.Where(v => !x3SqauareAroundMouse.Contains(v)).ToList().RandomPicker();
+                            //while the minelocations already containts the newlocation, get another new location
+                            mineLocations.Add(newLoc);
+                            bottomLeftSqauare.Remove(newLoc);
+                        }
+                }
             }
 
 
@@ -206,12 +215,8 @@ public class FrontMan : SerializedMonoBehaviour
 
         if (TilesRevealed > 0 && Input.GetMouseButtonDown(0))             //LEFT CLICK
         {
-            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-            stopwatch.Reset(); stopwatch.Start();
 
             if (flags.Contains(MWPFloored2)) return;  //If theres a flag, ignore the reveal
-
-            print("post flag check: " + stopwatch.Elapsed);
 
             if (mineLocations.Contains(MWPFloored2))  //if there is a mine, spawn a mine
             {
@@ -223,14 +228,8 @@ public class FrontMan : SerializedMonoBehaviour
             }
             else
             {
-
-                print("pre checks: " + stopwatch.Elapsed);
                 SpawnTile(MWPFloored2);
-                print("post spawn: " + stopwatch.Elapsed);
             }
-
-            print("Total time: " + stopwatch.Elapsed);
-            stopwatch.Stop();
         }
 
         if (Input.GetMouseButtonDown(1))  //RIGHT CLICK
@@ -281,17 +280,20 @@ public class FrontMan : SerializedMonoBehaviour
         stopwatch.Reset(); stopwatch.Start();
         loadingMines = true;
         LoadBar.gameObject.SetActive(true);
-        print("loadbar turned on");
         mineLocations = new HashSet<Vector2Int>();
         HashSet<Vector2Int> shiftedMineLocations = new HashSet<Vector2Int>();
         float loaded = 0;
         float segment = 1;
+
+        int attempts = 0;
+
         HashSet<Vector2Int> x3Sqauare = new HashSet<Vector2Int>();
         for (int x = 0; x <= 2; x++)
             for (int y = 0; y <= 2; y++)
                 x3Sqauare.Add(new Vector2Int(x, y));
+
         yield return 0;
-        if (mines <= (TotalTiles * .995) + 1)  //HASHSET METHOD IS SLOWER FOR EXTREMELY SATURATED MAPS, SO SWITCH TO THE LIST METHOD IF TRUE
+        if ((mines <= (TotalTiles * .995) + 1))  //HASHSET METHOD IS SLOWER FOR EXTREMELY SATURATED MAPS, SO SWITCH TO THE LIST METHOD IF TRUE
         {
             print("hashset method");
             yield return 0;
@@ -301,7 +303,13 @@ public class FrontMan : SerializedMonoBehaviour
                 //  Realized i might be retarded.  Making a system to transfer mines to random empty spots
                 while (mineLocations.Count < mines)
                 {
-                    Vector2Int vec = new Vector2Int(UnityEngine.Random.Range(1, gridSize.x), UnityEngine.Random.Range(1, gridSize.y));
+                    Vector2Int vec = new Vector2Int(UnityEngine.Random.Range(0, gridSize.x), UnityEngine.Random.Range(0, gridSize.y));
+
+                    /* for testing
+                    attempts++;
+                    print(attempts + "\t" + vec + "\t" + mineLocations.Count);
+                    yield return 0;*/
+
                     if (!x3Sqauare.Contains(vec)) mineLocations.Add(vec);
 
                     if (((((float)mineLocations.Count) / mines) * 100) > loaded)  //ATTEMPT AT A LOADBAR SYSTEM.  DOESNT WORK AND IDK WHY.  FIX LATER
@@ -316,7 +324,7 @@ public class FrontMan : SerializedMonoBehaviour
             {
                 while (mineLocations.Count < mines)
                 {
-                    mineLocations.Add(new Vector2Int(UnityEngine.Random.Range(1, gridSize.x), UnityEngine.Random.Range(1, gridSize.y)));
+                    mineLocations.Add(new Vector2Int(UnityEngine.Random.Range(0, gridSize.x - 1), UnityEngine.Random.Range(0, gridSize.y - 1)));
                     if (((float)(mineLocations.Count) / mines) * 100 > loaded)
                     {
                         loaded += segment;
@@ -326,8 +334,9 @@ public class FrontMan : SerializedMonoBehaviour
                 }
             }
         }
-        else                                      //LIST METHOD
+        else  //=============================================================================================LIST METHOD
         {
+            print("list method");
             yield return null;
             List<Vector2Int> possibleLocations = new List<Vector2Int>();
             for (int x = 0; x < width; x++)
@@ -343,15 +352,14 @@ public class FrontMan : SerializedMonoBehaviour
                 Vector2Int vect = possibleLocations.RandomPicker();
                 possibleLocations.Remove(vect);
                 mineLocations.Add(vect);
-                if (((mineLocations.Count) / (float)mines * 100) > loaded)
+                if (((float)(mineLocations.Count) / mines * 100) > loaded)
                 {
                     loaded += segment;
-                    LoadBar.fillAmount = (mines - mineLocations.Count) / mines;
+                    LoadBar.fillAmount = 1 - ((float)mines - mineLocations.Count) / mines;
                     yield return 0;
                 }
             }
         }
-        print(mines);
         print(mineLocations.Count);
         LoadBar.gameObject.SetActive(false);
         loadingMines = false;
@@ -360,6 +368,12 @@ public class FrontMan : SerializedMonoBehaviour
 
 
         yield return 0;
+    }
+
+    [Button]
+    public void SortedMineList()
+    {
+        sortedminelist = mineLocations.ToList().OrderBy(v => v.x).ThenBy(v => v.y).ToList();
     }
     public void DeActivateBoard(int recursion)
     {
@@ -583,8 +597,8 @@ public class Timer
         return timer;
     }*/
 
-    //Set float to 0 for an occurence every frame
-    public static Timer RepeatInvoker(Action Job, Func<float> repeatTime, GameObject AttachTo)//This repeat invoker will repeat as long as the attached gameobject is NOT destroyed
+        //Set float to 0 for an occurence every frame
+        public static Timer RepeatInvoker(Action Job, Func<float> repeatTime, GameObject AttachTo)//This repeat invoker will repeat as long as the attached gameobject is NOT destroyed
     {
         Timer timer = new Timer();
         timer.TimerThreshhold = repeatTime;

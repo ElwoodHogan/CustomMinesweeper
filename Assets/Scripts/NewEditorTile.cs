@@ -127,6 +127,7 @@ public class NewEditorTile : MonoBehaviour
 
     public List<NewEditorTile> NearbyTiles()
     {
+        //OPTIMIZE THIS!!!
         return NETs.Where(pair => Vector2Int.Distance(pair.Key, pos2) < 2).Select(kvp => kvp.Value).ToList();
     }
 

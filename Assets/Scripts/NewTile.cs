@@ -22,9 +22,20 @@ public class NewTile : SerializedMonoBehaviour
     private void Start()
     {
         FM.TilesRevealed++;
+        nearbyMines = 0;
+        if (FM.mineLocations.Contains(new Vector2Int((int)pos2.x + 1, (int)pos2.y)))     nearbyMines++;
+        if (FM.mineLocations.Contains(new Vector2Int((int)pos2.x + 1, (int)pos2.y + 1))) nearbyMines++;
+        if (FM.mineLocations.Contains(new Vector2Int((int)pos2.x + 1, (int)pos2.y - 1))) nearbyMines++;
+        if (FM.mineLocations.Contains(new Vector2Int((int)pos2.x,     (int)pos2.y + 1))) nearbyMines++;
+        if (FM.mineLocations.Contains(new Vector2Int((int)pos2.x,     (int)pos2.y - 1))) nearbyMines++;
+        if (FM.mineLocations.Contains(new Vector2Int((int)pos2.x - 1, (int)pos2.y)))     nearbyMines++;
+        if (FM.mineLocations.Contains(new Vector2Int((int)pos2.x - 1, (int)pos2.y + 1))) nearbyMines++;
+        if (FM.mineLocations.Contains(new Vector2Int((int)pos2.x - 1, (int)pos2.y - 1))) nearbyMines++;
 
-        nearbyMines = FM.mineLocations.Where(v => Vector2Int.Distance(v, pos2Int) < 2).Count();
-        name = $"OST x:{pos.x} y:{pos.y}";  //COMMENT OUT POST-FINAL
+        //holy shit this method was un-optimal
+        //nearbyMines = FM.mineLocations.Where(v => Vector2Int.Distance(v, pos2Int) < 2).Count();
+
+        //name = $"OST x:{pos.x} y:{pos.y}";  //COMMENT OUT POST-FINAL
         if (nearbyMines == 0)
         {
             StartCoroutine(SpawnAboveWhileInScreen());
@@ -35,7 +46,6 @@ public class NewTile : SerializedMonoBehaviour
             number.text = nearbyMines + "";
             number.color = FM.NumberColors[nearbyMines];
         }
-
     }
 
     IEnumerator SpawnAboveWhileInScreen()
